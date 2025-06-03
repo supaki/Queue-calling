@@ -1,0 +1,810 @@
+<script>
+    // Global variables
+    let currentQueueData = null;
+    let soundMap = {};
+    let audioContext;
+    let audioQueue = [];
+    let isPlayingAudio = false;
+    let lastRecallSignalTimestamp = null;
+    let refreshInterval;
+    let currentVideoId = null; // Track the current video ID to avoid reloading
+
+    // Slideshow specific variables
+    let slideshowImageObjects = []; // Changed name for clarity
+    let currentSlideshowIndex = 0;
+    let slideshowIntervalId = null;
+    let slideshowInterval = 7000; // Default: 7 seconds per image
+    let slideshowTransition = 'fade'; // Default transition effect
+
+    // Function to initialize DOM elements
+    function initDOMElements() {
+        console.log("Initializing DOM elements");
+        currentQueueEl = document.getElementById('currentQueue');
+        currentServiceEl = document.getElementById('currentService');
+        queueHistoryEl = document.getElementById('queueHistory');
+        skippedQueueListEl = document.getElementById('skippedQueueList');
+        skippedQueuesSectionEl = document.getElementById('skippedQueuesSection');
+        currentTimeEl = document.getElementById('currentTime');
+        organizationNameDisplayEl = document.getElementById('organizationNameDisplay');
+        youtubePlayerEl = document.getElementById('youtubePlayer');
+        slideshowImageEl = document.getElementById('slideshowImage');
+        mediaPlaceholderEl = document.getElementById('mediaPlaceholder');
+        interactionOverlay = document.getElementById('interactionOverlay');
+        startDisplayButton = document.getElementById('startDisplayButton');
+    }
+
+    function initAudioContext() {
+        try {
+            if (!audioContext && (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined')) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log("AudioContext created with state:", audioContext.state);
+            }
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume()
+                    .then(() => console.log("AudioContext resumed successfully, state:", audioContext.state))
+                    .catch(e => console.error("Error resuming audio context:", e));
+            }
+        } catch (e) {
+            console.error("Error initializing AudioContext:", e);
+        }
+    }
+
+    function setupEventListeners() {
+        if (startDisplayButton && interactionOverlay) {
+            console.log("Setting up start button click listener");
+            startDisplayButton.addEventListener('click', function() {
+                console.log("Start button clicked");
+                startDisplay();
+            });
+            
+            // Add test sound button listener
+            const testSoundButton = document.getElementById('testSoundButton');
+            if (testSoundButton) {
+                testSoundButton.addEventListener('click', function() {
+                    console.log("Test sound button clicked");
+                    initAudioContext();
+                    
+                    // Play a test sound if we have data
+                    if (currentQueueData && currentQueueData.calling) {
+                        playQueueSound(
+                            currentQueueData.calling.number,
+                            currentQueueData.calling.counterId,
+                            currentQueueData.calling.counterNameSoundId,
+                            currentQueueData.announcementPattern,
+                            currentQueueData.counterAnnouncementType
+                        );
+                    } else {
+                        // Play a default test sound if no queue data
+                        const testAudio = new Audio('https://weerasak3s.github.io/media/1-1.mp3');
+                        testAudio.play().catch(function(error) {
+                            console.error("Error playing test sound:", error);
+                            alert("ไม่สามารถเล่นเสียงทดสอบได้ กรุณาคลิกที่ปุ่มเริ่มแสดงผลก่อน");
+                        });
+                    }
+                });
+            }
+        } else {
+            console.warn("Interaction overlay or start button not found. Audio might not play without user interaction.");
+            // Start anyway since the button isn't available
+            startDisplay();
+        }
+    }
+
+    function startDisplay() {
+        console.log("Starting display");
+        initAudioContext();
+        
+        if (interactionOverlay) {
+            interactionOverlay.style.display = 'none';
+        }
+        
+        fetchInitialData(); 
+        
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+        
+        refreshInterval = setInterval(fetchAdminDashboardData, 5000);
+    }
+
+    function fetchInitialData() {
+        google.script.run.withSuccessHandler(function(sounds) {
+            soundMap = sounds;
+            console.log("Sound map loaded:", soundMap);
+        }).withFailureHandler(function(error) {
+            console.error("Error loading sound map:", error);
+        }).getSoundUrls();
+
+        fetchAdminDashboardData(); 
+    }
+
+    function fetchAdminDashboardData() {
+        google.script.run
+            .withSuccessHandler(updateDisplay)
+            .withFailureHandler(function(error) {
+                console.error('Error fetching admin dashboard data:', error);
+            })
+            .getAdminDashboardData();
+    }
+
+    function updateDisplay(data) {
+        console.log("Received data for display:", data);
+        if (data.error) {
+            console.error("Error from server:", data.error);
+            if (currentQueueEl) currentQueueEl.textContent = "Error";
+            if (currentServiceEl) currentServiceEl.textContent = data.error;
+            return;
+        }
+
+        // Store previous calling queue to detect changes
+        const previousCallingQueue = currentQueueData && currentQueueData.calling ? currentQueueData.calling.number : null;
+        
+        currentQueueData = data; 
+
+        // Update display settings
+        console.log("Updating display settings from server data");
+        
+        // Update slideshow interval if provided
+        if (data.SlideshowInterval) {
+            const newInterval = parseInt(data.SlideshowInterval) * 1000; // Convert seconds to milliseconds
+            if (newInterval !== slideshowInterval) {
+                console.log(`Updating slideshow interval from ${slideshowInterval}ms to ${newInterval}ms`);
+                slideshowInterval = newInterval;
+                
+                // Restart slideshow with new interval if it's currently running
+                if (slideshowIntervalId) {
+                    console.log("Restarting slideshow with new interval");
+                    clearInterval(slideshowIntervalId);
+                    slideshowIntervalId = null;
+                    if (displayType === 'slideshow' && slideshowImageObjects.length > 0) {
+                        startImageSlideshow();
+                    }
+                }
+            }
+        }
+        
+        // Update slideshow transition if provided
+        if (data.SlideshowTransition) {
+            if (data.SlideshowTransition !== slideshowTransition) {
+                console.log(`Updating slideshow transition from ${slideshowTransition} to ${data.SlideshowTransition}`);
+                slideshowTransition = data.SlideshowTransition;
+            }
+        }
+
+        if (organizationNameDisplayEl && data.organizationName) {
+            organizationNameDisplayEl.textContent = data.organizationName;
+        }
+
+        if (data.calling) {
+            // Format queue number as 3-digit with leading zeros
+            if (currentQueueEl) {
+                const queueNumber = data.calling.number || '-';
+                if (queueNumber !== '-') {
+                    currentQueueEl.textContent = String(queueNumber).padStart(3, '0');
+                } else {
+                    currentQueueEl.textContent = queueNumber;
+                }
+            }
+            if (currentServiceEl) currentServiceEl.textContent = data.calling.serviceName || 'รอช่องบริการ';
+            if(document.getElementById('currentQueueCard')) {
+                document.getElementById('currentQueueCard').classList.remove('hidden');
+                document.getElementById('currentQueueCard').classList.add('slide-in'); // Re-trigger animation
+            }
+            
+            // Check for recall signal
+            if (data.recallSignal && data.recallSignal.timestamp !== lastRecallSignalTimestamp) {
+                console.log("New recall signal detected:", data.recallSignal);
+                // Force audio context initialization before playing sound
+                initAudioContext();
+                playQueueSound(data.calling.number, data.calling.counterId, data.calling.counterNameSoundId, data.announcementPattern, data.counterAnnouncementType);
+                lastRecallSignalTimestamp = data.recallSignal.timestamp;
+                google.script.run.withSuccessHandler(function() {
+                    console.log("Recall signal cleared from server.");
+                }).withFailureHandler(function(err) {
+                    console.error("Error clearing recall signal:", err);
+                }).clearRecallSignal();
+            }
+            // Also play sound when a new queue is called (not just on recall)
+            else if (previousCallingQueue !== data.calling.number) {
+                console.log("New queue detected, playing announcement");
+                // Force audio context initialization before playing sound
+                initAudioContext();
+                playQueueSound(data.calling.number, data.calling.counterId, data.calling.counterNameSoundId, data.announcementPattern, data.counterAnnouncementType);
+            }
+        } else {
+            if (currentQueueEl) currentQueueEl.textContent = '-';
+            if (currentServiceEl) currentServiceEl.textContent = 'ไม่มีคิวเรียก';
+            if(document.getElementById('currentQueueCard')) document.getElementById('currentQueueCard').classList.add('hidden');
+        }
+
+        if (queueHistoryEl) {
+            queueHistoryEl.innerHTML = ''; 
+            if (data.completed && data.completed.length > 0) {
+                data.completed.forEach(function(q) {
+                    const item = document.createElement('div');
+                    item.className = 'bg-green-100 p-4 rounded-lg shadow flex justify-between items-center';
+                    // Format queue number as 3-digit with leading zeros
+                    const formattedQueueNumber = String(q.number).padStart(3, '0');
+                    // Modified to show queue number, service counter, and time in a single row
+                    // Ensure we display the time part of the timestamp (not just the date)
+                    let timeDisplay = '-';
+                    if (q.timestamp) {
+                        const timestampDate = new Date(q.timestamp);
+                        if (isNaN(timestampDate.getTime())) {
+                            console.warn("Invalid timestamp for queue:", q.number, q.timestamp);
+                        } else {
+                            timeDisplay = timestampDate.toLocaleTimeString('th-TH', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: false
+                            });
+                        }
+                    }
+                    item.innerHTML = '<div class="flex items-center gap-3"><span class="text-2xl font-bold text-green-700">' + formattedQueueNumber + '</span><span class="text-sm text-gray-600">' + (q.serviceName || 'N/A') + '</span></div><span class="text-sm text-gray-500">' + timeDisplay + '</span>';
+                    queueHistoryEl.appendChild(item);
+                });
+            } else {
+                queueHistoryEl.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีคิวที่สำเร็จ</p>';
+            }
+        }
+
+        if (skippedQueueListEl && skippedQueuesSectionEl) {
+            if (data.skipped && data.skipped.length > 0) {
+                // Only show queue numbers as 3-digit with leading zeros, separated by commas, with timestamp at the end
+                const queueNumbers = data.skipped.map(q => String(q.number).padStart(3, '0')).join(', ');
+                // Get the latest timestamp from skipped queues with proper formatting
+                let latestTimestamp = '';
+                if (data.skipped.length > 0 && data.skipped[0].timestamp) {
+                    const timestampDate = new Date(data.skipped[0].timestamp);
+                    if (!isNaN(timestampDate.getTime())) {
+                        latestTimestamp = ' ' + timestampDate.toLocaleTimeString('th-TH', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                        });
+                    }
+                }
+                skippedQueueListEl.textContent = queueNumbers + latestTimestamp;
+                skippedQueuesSectionEl.classList.remove('hidden');
+            } else {
+                skippedQueuesSectionEl.classList.add('hidden');
+            }
+        }
+        
+        updateMediaContent(data.mediaUrl, data.slideshowImages);
+
+        if (currentTimeEl) {
+            const now = new Date();
+            // Format time with clear hour:minute:second format
+            currentTimeEl.textContent = now.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false // Use 24-hour format
+            });
+        }
+    }
+
+    function updateMediaContent(mediaUrl, newSlideshowImageObjects) {
+        const hasYoutubeUrl = mediaUrl && mediaUrl.trim() !== '';
+        const hasSlideshow = newSlideshowImageObjects && newSlideshowImageObjects.length > 0;
+        
+        // Get display type from server data, default to slideshow if there are slideshow images available
+        const displayType = currentQueueData.DisplayType || (hasSlideshow ? 'slideshow' : 'video');
+        
+        console.log("Media content update - Display type:", displayType, 
+                    "Has YouTube:", hasYoutubeUrl, 
+                    "Has slideshow images:", hasSlideshow, 
+                    "Slideshow image count:", newSlideshowImageObjects ? newSlideshowImageObjects.length : 0,
+                    "Slideshow interval:", slideshowInterval);
+
+        // Always stop any existing slideshow before deciding what to display
+        if (slideshowIntervalId) {
+            console.log("Stopping existing slideshow");
+            clearInterval(slideshowIntervalId);
+            slideshowIntervalId = null;
+        }
+        
+        // Check if slideshow images have changed
+        let slideshowImagesChanged = false;
+        if (hasSlideshow && slideshowImageObjects.length === newSlideshowImageObjects.length) {
+            // Check if any image URLs have changed
+            for (let i = 0; i < newSlideshowImageObjects.length; i++) {
+                if (newSlideshowImageObjects[i].url !== slideshowImageObjects[i].url) {
+                    console.log(`Image at index ${i} changed from ${slideshowImageObjects[i].url} to ${newSlideshowImageObjects[i].url}`);
+                    slideshowImagesChanged = true;
+                    break;
+                }
+            }
+        } else {
+            console.log(`Slideshow image count changed: old=${slideshowImageObjects.length}, new=${newSlideshowImageObjects ? newSlideshowImageObjects.length : 0}`);
+            slideshowImagesChanged = true;
+        }
+        
+        if (slideshowImagesChanged && hasSlideshow) {
+            console.log("Slideshow images have changed, updating...");
+        }
+
+        // Determine what to display based on display type and available content
+        console.log(`Applying display type: ${displayType}`);
+        
+        if (displayType === 'video') {
+            // Video mode selected
+            if (hasYoutubeUrl) {
+                // Display YouTube video
+                if (youtubePlayerEl) {
+                    const videoId = extractYouTubeVideoId(mediaUrl);
+                    if (videoId) {
+                        // Only update the iframe src if the video ID has changed or if it's not already playing
+                        if (videoId !== currentVideoId || youtubePlayerEl.style.display === 'none') {
+                            console.log("Loading new video or displaying previously hidden video:", videoId);
+                            // Keep mute=1 to prevent YouTube audio from interfering with queue announcements
+                            youtubePlayerEl.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&loop=1&playlist=' + videoId;
+                            currentVideoId = videoId;
+                        } else {
+                            console.log("Video already playing, not reloading:", videoId);
+                        }
+                        // Ensure the video fills the available space and is centered
+                        youtubePlayerEl.style.display = 'block';
+                        youtubePlayerEl.style.width = '100%';
+                        youtubePlayerEl.style.height = '100%';
+                        youtubePlayerEl.style.margin = '0';
+                        youtubePlayerEl.style.position = 'relative';
+                        youtubePlayerEl.style.top = '50%';
+                        youtubePlayerEl.style.transform = 'translateY(-50%)';
+                    } else {
+                        youtubePlayerEl.style.display = 'none';
+                        currentVideoId = null;
+                        console.log("No valid YouTube video ID found in URL:", mediaUrl);
+                    }
+                }
+                if (slideshowImageEl) slideshowImageEl.style.display = 'none';
+                if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'none';
+            } else {
+                // No YouTube URL available, show placeholder or fallback to slideshow
+                console.log("Video mode selected but no YouTube URL available");
+                if (hasSlideshow) {
+                    console.log("Falling back to slideshow mode");
+                    slideshowImageObjects = newSlideshowImageObjects;
+                    currentSlideshowIndex = 0;
+                    startImageSlideshow();
+                    if (youtubePlayerEl) youtubePlayerEl.style.display = 'none';
+                    if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'none';
+                } else {
+                    // No slideshow available either, show placeholder
+                    if (youtubePlayerEl) youtubePlayerEl.style.display = 'none';
+                    if (slideshowImageEl) slideshowImageEl.style.display = 'none';
+                    if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'block';
+                }
+            }
+        } else if (displayType === 'slideshow') {
+            // Slideshow mode selected
+            if (hasSlideshow) {
+                // Display slideshow from SlideshowImages sheet
+                console.log("Starting slideshow with", newSlideshowImageObjects.length, "images");
+                slideshowImageObjects = newSlideshowImageObjects;
+                currentSlideshowIndex = 0;
+                startImageSlideshow();
+                if (youtubePlayerEl) {
+                    youtubePlayerEl.style.display = 'none';
+                    // Don't reset currentVideoId here, so we can resume the video if we switch back
+                }
+                if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'none';
+            } else {
+                // No slideshow images available, fallback to video or placeholder
+                console.log("Slideshow mode selected but no images available");
+                if (hasYoutubeUrl) {
+                    console.log("Falling back to video mode");
+                    if (youtubePlayerEl) {
+                        const videoId = extractYouTubeVideoId(mediaUrl);
+                        if (videoId) {
+                            youtubePlayerEl.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&loop=1&playlist=' + videoId;
+                            currentVideoId = videoId;
+                            youtubePlayerEl.style.display = 'block';
+                            youtubePlayerEl.style.width = '100%';
+                            youtubePlayerEl.style.height = '100%';
+                            youtubePlayerEl.style.margin = '0';
+                            youtubePlayerEl.style.position = 'relative';
+                            youtubePlayerEl.style.top = '50%';
+                            youtubePlayerEl.style.transform = 'translateY(-50%)';
+                        }
+                    }
+                    if (slideshowImageEl) slideshowImageEl.style.display = 'none';
+                    if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'none';
+                } else {
+                    // No content available for either type
+                    if (youtubePlayerEl) youtubePlayerEl.style.display = 'none';
+                    if (slideshowImageEl) slideshowImageEl.style.display = 'none';
+                    if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'block';
+                }
+            }
+        } else {
+            // Unknown display type, show placeholder
+            console.log("Unknown display type:", displayType);
+            if (youtubePlayerEl) {
+                youtubePlayerEl.style.display = 'none';
+                currentVideoId = null;
+            }
+            if (slideshowImageEl) slideshowImageEl.style.display = 'none';
+            if (mediaPlaceholderEl) mediaPlaceholderEl.style.display = 'block';
+        }
+    }
+
+    function startImageSlideshow() {
+        if (!slideshowImageEl || slideshowImageObjects.length === 0) {
+            if(slideshowImageEl) slideshowImageEl.style.display = 'none';
+            console.log("Cannot start slideshow: No image element or no images available");
+            return;
+        }
+        
+        console.log(`Starting slideshow with ${slideshowImageObjects.length} images`);
+        slideshowImageEl.style.display = 'block';
+        
+        // Apply transition effect based on settings
+        if (slideshowTransition === 'fade') {
+            slideshowImageEl.style.transition = 'opacity 0.5s ease-in-out';
+        } else if (slideshowTransition === 'slide') {
+            slideshowImageEl.style.transition = 'transform 0.5s ease-in-out';
+        } else {
+            slideshowImageEl.style.transition = 'none';
+        }
+        
+        // Ensure the image fills the available space and is centered
+        slideshowImageEl.style.width = '100%';
+        slideshowImageEl.style.height = '100%';
+        slideshowImageEl.style.objectFit = 'contain';
+        slideshowImageEl.style.objectPosition = 'center center'; // Ensure centering both horizontally and vertically
+        slideshowImageEl.style.margin = '0';
+
+        function showNextImage() {
+            if (slideshowImageObjects.length === 0) return; 
+            
+            // Apply transition effect
+            if (slideshowTransition === 'fade') {
+                slideshowImageEl.style.opacity = '0';
+                setTimeout(() => {
+                    updateSlideshowImage();
+                    slideshowImageEl.style.opacity = '1';
+                }, 500);
+            } else if (slideshowTransition === 'slide') {
+                slideshowImageEl.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    updateSlideshowImage();
+                    slideshowImageEl.style.transform = 'translateX(0)';
+                }, 500);
+            } else {
+                updateSlideshowImage();
+            }
+        }
+        
+        function updateSlideshowImage() {
+            const imageObject = slideshowImageObjects[currentSlideshowIndex];
+            
+            // Robustness check for the URL
+            if (imageObject && typeof imageObject.url === 'string' && (imageObject.url.startsWith('http://') || imageObject.url.startsWith('https://'))) {
+                slideshowImageEl.src = imageObject.url;
+                slideshowImageEl.alt = imageObject.title || 'Slideshow Image';
+                console.log(`Showing image ${currentSlideshowIndex + 1}/${slideshowImageObjects.length}: ${imageObject.title || 'Untitled'}`);
+            } else {
+                console.warn('Skipping invalid slideshow URL:', imageObject ? imageObject.url : 'undefined/invalid object', 'at index:', currentSlideshowIndex);
+            }
+
+            currentSlideshowIndex = (currentSlideshowIndex + 1) % slideshowImageObjects.length;
+        }
+
+        // Initialize first image without transition
+        updateSlideshowImage();
+        
+        // Set interval using the configured interval time
+        if (slideshowIntervalId) {
+            clearInterval(slideshowIntervalId);
+        }
+        slideshowIntervalId = setInterval(showNextImage, slideshowInterval);
+        console.log(`Slideshow interval set to ${slideshowInterval}ms (${slideshowInterval/1000} seconds)`);
+    }
+
+    function extractYouTubeVideoId(url) {
+        if (!url) return null;
+        let videoId = null;
+        const regExpWatch = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const matchWatch = url.match(regExpWatch);
+        if (matchWatch && matchWatch[2].length === 11) {
+            videoId = matchWatch[2];
+        } else {
+            const regExpShort = /youtu\.be\/([^#\&\?]{11})/;
+            const matchShort = url.match(regExpShort);
+            if (matchShort && matchShort[1].length === 11) {
+                videoId = matchShort[1];
+            }
+        }
+        return videoId;
+    }
+
+    function playQueueSound(queueNumber, counterIdentifier, counterNameSoundId, announcementPattern, counterAnnouncementType) {
+        console.log("playQueueSound called with: Q=" + queueNumber + ", CID=" + counterIdentifier + ", NameSoundID=" + counterNameSoundId + ", Pattern='" + announcementPattern + "', Type='" + counterAnnouncementType + "'");
+        
+        // Always try to initialize audio context first
+        initAudioContext();
+        
+        // Add a small delay to ensure audio context has time to initialize
+        setTimeout(function() {
+            if (!audioContext || audioContext.state === 'suspended') {
+                console.warn("AudioContext not active. Trying to resume...");
+                
+                // Try to resume the audio context with user interaction simulation
+                document.body.addEventListener('click', function resumeAudioOnce() {
+                    initAudioContext();
+                    document.body.removeEventListener('click', resumeAudioOnce);
+                    
+                    // Queue the sound play request to try again after user interaction
+                    audioQueue.push({ type: 'queueCall', data: { queueNumber, counterIdentifier, counterNameSoundId, announcementPattern, counterAnnouncementType } });
+                    console.log("Added queue call to audio queue for after user interaction");
+                }, { once: true });
+                
+                // Show a message to encourage user interaction
+                const audioMessage = document.createElement('div');
+                audioMessage.style.position = 'fixed';
+                audioMessage.style.top = '50%';
+                audioMessage.style.left = '50%';
+                audioMessage.style.transform = 'translate(-50%, -50%)';
+                audioMessage.style.padding = '20px';
+                audioMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                audioMessage.style.color = 'white';
+                audioMessage.style.borderRadius = '10px';
+                audioMessage.style.zIndex = '10000';
+                audioMessage.style.textAlign = 'center';
+                audioMessage.innerHTML = 'คลิกที่ใดก็ได้เพื่อเปิดใช้งานเสียง';
+                
+                document.body.appendChild(audioMessage);
+                
+                setTimeout(function() {
+                    if (document.body.contains(audioMessage)) {
+                        document.body.removeChild(audioMessage);
+                    }
+                }, 5000);
+                
+                return;
+            }
+            
+            processQueueSound();
+        }, 100);
+        
+        function processQueueSound() {
+
+        if (Object.keys(soundMap).length === 0 || !soundMap.digits || !soundMap.types || !soundMap.rawById) {
+                console.warn("Sound map not fully loaded or is empty. Cannot play announcement.");
+                return;
+            }
+
+            const newAudioSequence = [];
+            const patternParts = announcementPattern.split(',');
+
+            patternParts.forEach(function(part) {
+                part = part.trim();
+                if (part === "{QUEUE_NUMBER}") {
+                    const queueDigits = String(queueNumber).padStart(3, '0'); // Assuming 3 digits
+                    for (let i = 0; i < queueDigits.length; i++) {
+                        const digit = queueDigits[i];
+                        if (soundMap.digits && soundMap.digits[digit]) {
+                            newAudioSequence.push(soundMap.digits[digit]);
+                        } else {
+                            console.warn("Sound for queue digit '" + digit + "' not found.");
+                        }
+                    }
+                } else if (part === "{COUNTER_NUMBER}") {
+                    if (counterAnnouncementType === 'name_sound' && counterNameSoundId && soundMap.rawById[counterNameSoundId]) {
+                        newAudioSequence.push(soundMap.rawById[counterNameSoundId]);
+                    } else { // Default to number or if name_sound is not available/selected
+                        if (counterIdentifier) {
+                            const counterDigits = String(counterIdentifier);
+                            for (let i = 0; i < counterDigits.length; i++) {
+                                const digit = counterDigits[i];
+                                if (soundMap.digits && soundMap.digits[digit]) {
+                                    newAudioSequence.push(soundMap.digits[digit]);
+                                } else {
+                                    console.warn("Sound for counter digit '" + digit + "' not found.");
+                                }
+                            }
+                        } else {
+                            console.warn("Counter ID is not available for {COUNTER_NUMBER} and not using name_sound.");
+                        }
+                    }
+                } else if (part.startsWith("SOUND_TYPE_")) {
+                    const typeKey = part.replace("SOUND_TYPE_", "").toLowerCase();
+                    if (soundMap.types && soundMap.types[typeKey]) {
+                        newAudioSequence.push(soundMap.types[typeKey]);
+                    } else {
+                        console.warn("Sound for type '" + typeKey + "' (from " + part + ") not found.");
+                    }
+                } else if (soundMap.rawById[part]) { // Check if part is a direct sound ID
+                    newAudioSequence.push(soundMap.rawById[part]);
+                } else {
+                    console.warn("Unknown part in announcement pattern or sound ID not found: '" + part + "'");
+                }
+            });
+
+            if (newAudioSequence.length > 0) {
+                audioQueue = audioQueue.concat(newAudioSequence); // Add new sounds to the queue
+                if (!isPlayingAudio) {
+                    processAudioQueue();
+                }
+            } else {
+                console.warn("No sounds generated for the announcement pattern.");
+            }
+        } // End of processQueueSound function
+    }
+
+    async function playSoundFromUrl(url) {
+        // Temporarily mute YouTube video if it's playing
+        const youtubeFrame = document.getElementById('youtubePlayer');
+        let videoWasPlaying = false;
+        
+        if (youtubeFrame && youtubeFrame.style.display !== 'none') {
+            videoWasPlaying = true;
+            console.log("Temporarily pausing YouTube video for announcement");
+        }
+        
+        if (!audioContext) {
+            console.error("AudioContext not initialized. Attempting to initialize...");
+            initAudioContext();
+            if (!audioContext) {
+                console.error("Failed to initialize AudioContext. Cannot play sound.");
+                isPlayingAudio = false; // Reset flag
+                return;
+            }
+        }
+        
+        // Make sure AudioContext is running
+        if (audioContext.state === 'suspended') {
+            try {
+                await audioContext.resume();
+                console.log("AudioContext resumed before playing sound");
+            } catch (e) {
+                console.error("Failed to resume AudioContext:", e);
+            }
+        }
+        
+        try {
+            console.log("Fetching sound from URL:", url);
+            const response = await fetch(url, { cache: 'no-store' }); // Avoid caching issues
+            if (!response.ok) {
+                throw new Error("Failed to fetch sound " + url + ": " + response.statusText);
+            }
+            
+            const arrayBuffer = await response.arrayBuffer();
+            console.log("Sound data fetched, decoding audio...");
+            
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            console.log("Audio decoded successfully, playing sound...");
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            
+            // Create a gain node to ensure volume is at maximum
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 1.0; // Maximum volume
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            source.start(0);
+            console.log("Sound started playing");
+            
+            return new Promise(function(resolve) {
+                source.onended = function() {
+                    console.log("Sound finished playing");
+                    resolve();
+                };
+            });
+        } catch (error) {
+            console.error("Error playing sound from URL:", url, error);
+            // Continue to next sound in queue even if one fails
+        }
+    }
+
+    async function processAudioQueue() {
+        if (audioQueue.length === 0) {
+            isPlayingAudio = false;
+            console.log("Audio queue is empty, stopping playback");
+            return;
+        }
+        
+        isPlayingAudio = true;
+        const soundItem = audioQueue.shift();
+        
+        // Handle both string URLs and complex queue items
+        let soundUrlToPlay;
+        if (typeof soundItem === 'string') {
+            soundUrlToPlay = soundItem;
+        } else if (soundItem && soundItem.type === 'queueCall' && soundItem.data) {
+            // This is a queued call that was stored when AudioContext was suspended
+            console.log("Processing queued call item:", soundItem.data);
+            playQueueSound(
+                soundItem.data.queueNumber,
+                soundItem.data.counterIdentifier,
+                soundItem.data.counterNameSoundId,
+                soundItem.data.announcementPattern,
+                soundItem.data.counterAnnouncementType
+            );
+            // Continue with next item in queue
+            setTimeout(processAudioQueue, 100);
+            return;
+        } else {
+            console.warn("Unknown item in audio queue:", soundItem);
+            // Skip this item and continue with next
+            setTimeout(processAudioQueue, 100);
+            return;
+        }
+        
+        console.log("Playing sound from queue:", soundUrlToPlay);
+        try {
+            await playSoundFromUrl(soundUrlToPlay);
+            // Slight delay before playing next sound to avoid abrupt transitions
+            setTimeout(processAudioQueue, 200); // 200ms delay for better transitions
+        } catch (error) {
+            console.error("Error in processAudioQueue:", error);
+            // Continue with next sound even if one fails
+            setTimeout(processAudioQueue, 200);
+        }
+    }
+
+    // Initialize DOM elements and set up event listeners when the document is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM fully loaded");
+        
+        // Initialize DOM elements
+        initDOMElements();
+        
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Auto-start after a short delay if no interaction
+        setTimeout(function() {
+            if (interactionOverlay && interactionOverlay.style.display !== 'none') {
+                console.log("Auto-starting display after timeout");
+                startDisplay();
+            }
+        }, 5000); // 5 seconds timeout
+    });
+
+    // Update the time display every second with clear formatting
+    setInterval(function() {
+        if (currentTimeEl) {
+            const now = new Date();
+            // Format time with clear hour:minute:second format
+            currentTimeEl.textContent = now.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false // Use 24-hour format
+            });
+        }
+    }, 1000);
+
+    // Final fallback - if the page has been loaded for 10 seconds and the display hasn't started yet,
+    // initialize everything and start the display
+    setTimeout(function() {
+        console.log("Final fallback check");
+        if (!refreshInterval) {
+            console.log("Display hasn't started yet, forcing start");
+            initDOMElements();
+            startDisplay();
+        }
+    }, 10000);
+
+    // DOM Elements - We'll initialize these after the document is fully loaded
+    let currentQueueEl;
+    let currentServiceEl;
+    let queueHistoryEl;
+    let skippedQueueListEl;
+    let skippedQueuesSectionEl;
+    let currentTimeEl;
+    let organizationNameDisplayEl;
+    let youtubePlayerEl;
+    let slideshowImageEl;
+    let mediaPlaceholderEl;
+    let interactionOverlay;
+    let startDisplayButton;
+</script>

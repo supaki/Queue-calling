@@ -1,0 +1,85 @@
+<style>
+  /* ตั้งค่า<|im_start|>้นฐาน */
+  body {
+    font-family: 'Sarabun', 'Prompt', sans-serif;
+  }
+  
+  /* สไตล์<|im_start|>แท็บ */
+  .tab-active {
+    background-color: #4299e1;
+    color: white;
+  }
+  
+  /* สไตล์ ตาราง */
+  .table-striped tr:nth-child(even) {
+    background-color: #f7fafc;
+  }
+  
+  /* สไตล์ แสดงผล用微信扫 */
+  .queue-card {
+    transition: all 0.3s ease;
+  }
+  
+  .queue-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* สไตล์ ไม่ใช้ */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    
+    #printArea, #printArea * {
+      visibility: visible;
+    }
+    
+    #printArea {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    
+    .no-print {
+      display: none;
+    }
+  }
+  
+  /* สไตล์ แสดงผลบนจอ */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    .text-6xl {
+      font-size: 3rem;
+    }
+  }
+  
+  /* สไตล์ ไม่ใช้ */
+  .blink-animation {
+    animation: blink 1s linear infinite;
+  }
+  
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+  
+  /* สไตล์ ปุ่ม */
+  .btn {
+    transition: all 0.2s ease;
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  
+  .btn:active {
+    transform: translateY(0);
+  }
+</style>

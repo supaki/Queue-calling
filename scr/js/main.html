@@ -1,0 +1,101 @@
+<script>
+// ฟังก์ชันสำหรับแสดง section ที่ต้องการและซ่อน section อื่น (ย้ายมาจาก index.html)
+function showSection(sectionId) {
+  console.trace('showSection called with:', sectionId);
+  const sections = [
+    'loginForm',
+    'dashboard',
+    'userSection',
+    'displaySection',
+    'adminSection',
+    'settingsSection' // Changed from initSection
+  ];
+
+ 
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (id === sectionId) {
+        el.classList.remove('hidden');
+        sessionStorage.setItem('lastContent', id);  
+        // If settingsSection is shown, call its data loading functions
+        if (id === 'settingsSection' && typeof onShowSettingsSection === 'function') {
+          onShowSettingsSection();
+        }
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+  });
+}
+
+
+
+// ฟังก์ชันสำหรับการจัดรูปแบบวันที่และเวลา
+function formatDateTime(date) {
+  if (!date) return '';
+  
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+// ฟังก์ชันสำหรับการจัดรูปแบบเวลา
+function formatTime(date) {
+  if (!date) return '';
+  
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
+  
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  
+  return `${hours}:${minutes}`;
+}
+
+// เมื่อหน้าเว็บโหลดเสร็จ
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // ตรวจสอบปุ่มออกจากระบบ (ถ้ามี)
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      google.script.run
+        .withSuccessHandler(() => {
+          // เคลียร์ข้อมูลผู้ใช้ใน UI
+          const userInfo = document.getElementById('userInfo');
+          if (userInfo) {
+            userInfo.textContent = '';
+          }
+          const usernameInput = document.getElementById('username');
+          if (usernameInput) {
+            usernameInput.value = '';
+          }
+          const passwordInput = document.getElementById('password');
+          if (passwordInput) {
+            passwordInput.value = '';
+          }
+          // แสดงหน้า login
+          sessionStorage.removeItem('lastContent');
+          showSection('loginForm');
+        })
+        .withFailureHandler((err) => {
+          console.error('Logout failed:', err);
+          showAlert('Logout failed. Please try again.', 'error');
+          showSection('loginForm'); // พยายามแสดงหน้า login แม้จะเกิดข้อผิดพลาด
+        })
+        .logout();
+    });
+  }
+});
+</script>

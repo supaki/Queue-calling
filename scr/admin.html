@@ -1,0 +1,284 @@
+<div class="flex flex-col gap-8 max-w-7xl mx-auto">
+    <!-- START: Moved Overview Content -->
+    <div id="overviewTab" class="space-y-6 mb-8"> <!-- Removed admin-tab-pane, added mb-8 -->
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- Column 1.1: Current Queue Number -->
+            <div class="w-full md:w-1/2 space-y-6">
+                <div class="bg-purple-700 text-white p-6 rounded-lg h-full">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-lg font-medium">สถานะปัจจุบัน</span>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-sm text-purple-200 mb-1">คิวปัจจุบัน</div>
+                        <div class="text-8xl font-bold mb-2" id="currentQueueDisplay">-</div>
+                        <div class="text-md mb-4" id="currentQueueNameDisplay"></div>
+                        <div class="text-lg mb-4">
+                            <span class="text-purple-200">คิวถัดไป:</span>
+                            <span class="font-semibold" id="nextQueueDisplay">-</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 justify-center">
+                            <button onclick="completeCurrentQueue()" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50" id="completeQueueBtn" disabled>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                เรียบร้อย
+                            </button>
+                            <button onclick="recallCurrentQueue()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50" id="recallQueueBtn" disabled>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 3.5a.75.75 0 01.75.75v1.511a4.501 4.501 0 013.08 4.038 3.75 3.75 0 11-7.498 0A4.501 4.501 0 019.25 5.76V4.25A.75.75 0 0110 3.5zM8.5 10a1.5 1.5 0 103 0 1.5 1.5 0 00-3 0zM10 17a4.5 4.5 0 004.166-2.942.75.75 0 00-1.332-.668A3 3 0 0110 15.5a3 3 0 01-2.834-2.11.75.75 0 10-1.332.668A4.5 4.5 0 0010 17z"></path></svg>
+                                เรียกซ้ำ
+                            </button>
+                            <button onclick="skipCurrentQueue()" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50" id="skipQueueBtn" disabled>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                ข้ามคิว
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Column 1.2: Queue History -->
+            <div class="w-full md:w-1/2 space-y-6">
+                <div class="bg-purple-700 text-white p-6 rounded-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-lg font-medium">เรียกคิวตามช่องบริการ</span>
+                        </div>
+                        <button id="refreshCountersBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                            </svg>
+                            รีเฟรช
+                        </button>
+                    </div>
+                    <div id="activeCounters" class="grid grid-cols-3 gap-4">
+                        <!-- Active counter buttons will be populated here by JavaScript -->
+                        <p class="text-purple-200 col-span-full">กำลังโหลดช่องบริการ...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END: Moved Overview Content -->
+
+    <!-- Tab Navigation -->
+    <div class="mb-4 border-b border-gray-200">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="adminTabs" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="admin-tab-button inline-block p-4 border-b-2 rounded-t-lg flex items-center gap-2" data-tab="call" type="button" role="tab" aria-selected="false">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                    </svg>
+                    รายการจองคิว
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="admin-tab-button inline-block p-4 border-b-2 rounded-t-lg flex items-center gap-2" data-tab="counters" type="button" role="tab" aria-selected="false">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                    </svg>
+                    จัดการช่องบริการ
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="admin-tab-button inline-block p-4 border-b-2 rounded-t-lg flex items-center gap-2" data-tab="allqueues" type="button" role="tab" aria-selected="false">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zM3 16a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"></path>
+                    </svg>
+                    รายการคิวทั้งหมด
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="admin-tab-button inline-block p-4 border-b-2 rounded-t-lg flex items-center gap-2" data-tab="reset" type="button" role="tab" aria-selected="false">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                    </svg>
+                    ตั้งค่าคิว
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="adminTabContent">
+        <!-- Tab 2: Call Queue (รายการจองคิว) -->
+        <div id="callTab" class="admin-tab-pane hidden space-y-6">
+            <div class="bg-green-600 text-white p-6 rounded-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-lg font-medium">คิวที่สำเร็จ (ล่าสุด 3)</span>
+                </div>
+                
+                <div class="bg-white text-black rounded-lg overflow-hidden">
+                    <div class="grid grid-cols-4 gap-4 p-4 bg-gray-50 font-semibold text-sm">
+                        <div class="col-span-1">คิวที่</div>
+                        <div class="col-span-2">ช่องบริการ</div>
+                        <div class="col-span-1">เวลา</div>
+                    </div>
+                    
+                    <div id="completedQueueHistory" class="divide-y divide-gray-200 max-h-48 overflow-y-auto">
+                        <!-- Completed queue history items will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-red-600 text-white p-6 rounded-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 101.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-lg font-medium">คิวที่ข้าม (ล่าสุด 3)</span>
+                </div>
+                <div class="bg-white text-black rounded-lg overflow-hidden">
+                    <div class="grid grid-cols-4 gap-4 p-4 bg-gray-50 font-semibold text-sm">
+                        <div>คิวที่</div>
+                        <div>ช่องบริการ</div>
+                        <div>เวลา</div>
+                        <div>สาเหตุ (ถ้ามี)</div>
+                    </div>
+                    <div id="skippedQueueHistory" class="divide-y divide-gray-200 max-h-48 overflow-y-auto">
+                        <!-- Skipped queue history items will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Manage Counters (จัดการช่องบริการ) -->
+        <div id="countersTab" class="admin-tab-pane hidden space-y-6">
+            <!-- Add New Counter Form -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">เพิ่มช่องบริการใหม่</h3>
+                <div class="flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="flex-grow w-full sm:w-auto">
+                        <label for="newCounterNameAdmin" class="block text-sm font-medium text-gray-700">ชื่อช่องบริการ:</label>
+                        <input type="text" id="newCounterNameAdmin" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <button id="addCounterBtnAdmin" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded h-fit w-full sm:w-auto">
+                        เพิ่มช่องบริการ
+                    </button>
+                </div>
+                <div id="addCounterMessageAdmin" class="mt-3 text-sm"></div>
+            </div>
+
+            <!-- Counters Table -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">รายการช่องบริการ</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อช่องบริการ</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminCountersTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">กำลังโหลดข้อมูลช่องบริการ...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="adminCountersTableMessage" class="mt-3 text-sm"></div>
+            </div>
+        </div>
+
+        <!-- Tab 4: All Queues List (รายการคิวทั้งหมด) -->
+        <div id="allqueuesTab" class="admin-tab-pane hidden space-y-6">
+            <div class="bg-gray-700 text-white p-6 rounded-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"></path>
+                    </svg>
+                    <span class="text-lg font-medium">รายการจองคิวทั้งหมด</span>
+                </div>
+                <div class="bg-white text-black rounded-lg overflow-hidden">
+                    <div class="grid grid-cols-12 gap-2 p-3 bg-gray-200 font-semibold text-xs text-gray-600 uppercase">
+                        <div class="col-span-1 text-center">#</div>
+                        <div class="col-span-2">สถานะ</div>
+                        <div class="col-span-3">เวลาสร้าง</div>
+                        <div class="col-span-3">เวลาเรียก</div>
+                        <div class="col-span-1 text-center">ช่อง</div>
+                        <div class="col-span-2">เหตุผล</div>
+                    </div>
+                    <div id="allQueuesTableBody" class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                        <!-- All queue items will be populated here -->
+                        <p class="text-center text-gray-500 p-4">กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Queue Settings (ตั้งค่าคิว) -->
+        <div id="resetTab" class="admin-tab-pane hidden space-y-6">
+            <div class="bg-orange-500 text-white p-6 rounded-lg">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-lg font-medium">รีเซ็ตเลขคิว</span>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="resetNumber" class="block text-sm font-medium mb-2">เริ่มนับคิวใหม่จากเลข</label>
+                        <input type="number" id="resetNumber" value="1" min="1" class="w-full px-3 py-2 text-black rounded border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-200">
+                    </div>
+                    
+                    <div class="bg-yellow-100 text-yellow-800 p-3 rounded flex items-center gap-2">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm">การรีเซ็ตคิวจะล้างข้อมูลคิวในปัจจุบันทั้งหมด และเริ่มนับเลขคิวใหม่ตามที่กำหนด</span>
+                    </div>
+                    
+                    <button onclick="adminResetQueue()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                        </svg>
+                        รีเซ็ตเลขคิว
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Counter Modal (Example Structure - place it at the end of the file or manage via JS) -->
+<div id="editCounterModalAdmin" class="fixed z-50 inset-0 overflow-y-auto hidden" aria-labelledby="editCounterModalAdminTitle" role="dialog" aria-modal="true">
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+      <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div class="sm:flex sm:items-start">
+          <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+            <h3 class="text-lg leading-6 font-medium text-gray-900" id="editCounterModalAdminTitle">แก้ไขช่องบริการ</h3>
+            <div class="mt-2 space-y-3">
+              <input type="hidden" id="editCounterIdAdmin">
+              <div>
+                <label for="editCounterNameInputAdmin" class="block text-sm font-medium text-gray-700">ชื่อช่องบริการ:</label>
+                <input type="text" id="editCounterNameInputAdmin" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="editCounterModalMessageAdmin" class="px-6 py-2 text-sm"></div>
+      <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+        <button type="button" id="saveEditCounterBtnAdmin" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+          บันทึก
+        </button>
+        <button type="button" id="cancelEditCounterBtnAdmin" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

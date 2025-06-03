@@ -1,0 +1,201 @@
+<script>
+// ตรวจสอบสถานะการเข้าสู่ระบบเมื่อหน้าเว็บโหลด
+document.addEventListener('DOMContentLoaded', function() {
+  // ตรวจสอบว่ามีฟอร์มล็อกอินหรือไม่
+  const loginForm = document.getElementById('loginForm');
+  const dashboard = document.getElementById('dashboard');
+  
+  if (loginForm && dashboard) {
+    // ตรวจสอบสถานะการเข้าสู่ระบบ
+    checkLoginStatus();
+    
+    // ตั้งค่าการทำงานของปุ่มเข้าสู่ระบบ
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', handleLogin);
+    }
+    
+    // ตั้งค่าการกด Enter ในช่อง password
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleLogin();
+        }
+      });
+    }
+    
+    // ตั้งค่าปุ่มในหน้า dashboard
+    setupDashboardButtons();
+  } else {
+    // หน้าอื่นๆ ที่ไม่ใช่หน้าล็อกอิน ให้ตรวจสอบว่าล็อกอินแล้วหรือไม่
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result.isLoggedIn) {
+          // ถ้ายังไม่ได้ล็อกอิน ให้กลับไปที่หน้าล็อกอิน
+          //navigateTo('index.html');
+           
+           
+        }
+      })
+      .checkLoginStatus();
+      
+  }
+});
+
+// ฟังก์ชันสำหรับการเข้าสู่ระบบ
+function handleLogin() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const loginError = document.getElementById('loginError');
+  
+  if (!username || !password) {
+    loginError.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+    loginError.classList.remove('hidden');
+    return;
+  }
+  
+  // แสดงสถานะกำลังโหลด
+  const loginBtn = document.getElementById('loginBtn');
+  const originalText = loginBtn.textContent;
+  loginBtn.textContent = 'กำลังเข้าสู่ระบบ...';
+  loginBtn.disabled = true;
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        // ล็อกอินสำเร็จ
+        loginError.classList.add('hidden');
+        showDashboard(result.role, username);
+        
+        sessionStorage.setItem('lastContent', 'dashboard');  
+        
+      } else {
+        // ล็อกอินไม่สำเร็จ
+        loginError.textContent = result.message || 'เข้าสู่ระบบไม่สำเร็จ';
+        loginError.classList.remove('hidden');
+        loginBtn.textContent = originalText;
+        loginBtn.disabled = false;
+      }
+    })
+    .withFailureHandler(function(error) {
+      loginError.textContent = 'เกิดข้อผิดพลาด: ' + error;
+      loginError.classList.remove('hidden');
+      loginBtn.textContent = originalText;
+      loginBtn.disabled = false;
+    })
+    .login(username, password);
+}
+
+// ฟังก์ชันสำหรับตรวจสอบสถานะการเข้าสู่ระบบ
+function checkLoginStatus() {
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.isLoggedIn) {
+        // ถ้าล็อกอินแล้ว ให้แสดงหน้า dashboard
+        // showDashboard(result.role, result.username);        
+        // console.log({isLoggedIn: true, username: result.username});
+
+        storedSection = sessionStorage.getItem('lastContent')      
+        if(storedSection){
+          showSection(storedSection);
+        }else{
+          showDashboard(result.role, result.username);     
+        } 
+       
+      } else {
+        // ถ้ายังไม่ได้ล็อกอิน ให้แสดงหน้าล็อกอิน        
+        showSection('loginForm');
+      }
+    })
+    .withFailureHandler(function(err) {
+      console.error('Check login status failed:', err);
+      showAlert('Failed to check login status. Please try again.', 'error');
+      showSection('loginForm'); // แสดงหน้า login หากการตรวจสอบสถานะล้มเหลว
+    })
+    .checkLoginStatus();
+}
+
+// ฟังก์ชันสำหรับแสดงหน้า dashboard
+function showDashboard(role, username) {
+  // ซ่อนหน้าล็อกอินและแสดงหน้า dashboard
+  showSection('dashboard'); // ใช้ showSection เพื่อจัดการการแสดงผล
+  
+  // แสดงชื่อผู้ใช้
+  const userInfo = document.getElementById('userInfo');
+  if (userInfo) {
+    userInfo.textContent = `${username} (${role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้ทั่วไป'})`;
+  }
+  
+  // ซ่อนหรือแสดงส่วนของแอดมินตามสิทธิ์
+  const adminPanel = document.getElementById('adminPanel');
+  if (adminPanel) {
+    if (role === 'admin') {
+      adminPanel.classList.remove('hidden');
+    } else {
+      adminPanel.classList.add('hidden');
+    }
+  }
+}
+
+// ฟังก์ชันสำหรับตั้งค่าปุ่มในหน้า dashboard
+function setupDashboardButtons() {
+  // ปุ่มไปหน้าจองคิว
+  const userPageBtn = document.getElementById('userPageBtn');
+  if (userPageBtn) {
+    userPageBtn.addEventListener('click', () => {
+      showSection('userSection');
+    });
+  }
+  
+  // ปุ่มไปหน้าแสดงผล
+  // const displayPageBtn = document.getElementById('displayPageBtn');
+  // if (displayPageBtn) {
+  //   displayPageBtn.addEventListener('click', () => {
+  //     showSection('displaySection');
+  //   });
+  // }
+   const displayPageBtn = document.getElementById('displayPageBtn');
+   if (displayPageBtn) {
+       displayPageBtn.addEventListener('click', function() { navigateTo('display'); });
+  }
+    
+  
+  const adminPageBtn = document.getElementById('adminPageBtn');
+  if (adminPageBtn) {
+    adminPageBtn.addEventListener('click', () => {
+      showSection('adminSection');
+    });
+  }
+  
+  // ปุ่มไปหน้าตั้งค่าระบบ (แทนปุ่ม initSystemBtn เดิม)
+  const settingsPageBtn = document.getElementById('settingsPageBtn');
+  if (settingsPageBtn) {
+    settingsPageBtn.addEventListener('click', () => {
+      showSection('settingsSection');
+    });
+  }
+}
+
+function navigateTo(pageName) {
+ 
+     google.script.run
+                .withSuccessHandler(function(url) {
+                    // Special handling for 'display_screen' to open in a new tab.
+                    
+                    if (pageName === 'display') {       
+                      sessionStorage.setItem('lastContent', 'displaySection');                 
+                        window.open(url, '_blank');                        
+                    } else {
+                        window.top.location.href = url; // Navigate in the current window
+                    }
+                })
+                .withFailureHandler(onFailure)
+                .getServedUrl(pageName); // Get URL for the target page
+        }
+
+function onFailure(error) {
+  console.error('Google Apps Script Call Error:', error);
+}
+
+</script>

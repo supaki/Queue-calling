@@ -1,0 +1,360 @@
+<!-- d:\Github\Queue-augment\settings.html -->
+<div class="w-full">
+    <!-- Tab Buttons -->
+    <div class="mb-4 border-b border-gray-200">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="settingsTabs" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="init-system-tab" data-tabs-target="#initSystemContent" type="button" role="tab" aria-controls="initSystemContent" aria-selected="true">
+                    1. เริ่มต้นระบบ
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="general-settings-tab" data-tabs-target="#generalSettingsContent" type="button" role="tab" aria-controls="generalSettingsContent" aria-selected="false">
+                    2. ตั้งค่าทั่วไป
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="display-settings-tab" data-tabs-target="#displaySettingsContent" type="button" role="tab" aria-controls="displaySettingsContent" aria-selected="false">
+                    3. ตั้งค่าการแสดงผล
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="sound-management-tab" data-tabs-target="#soundManagementContent" type="button" role="tab" aria-controls="soundManagementContent" aria-selected="false">
+                    4. จัดการเสียง
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="announcement-settings-tab" data-tabs-target="#announcementSettingsContent" type="button" role="tab" aria-controls="announcementSettingsContent" aria-selected="false">
+                    5. จัดการรูปแบบเสียงเรียกคิว
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="settings-tab-button inline-block p-4 border-b-2 rounded-t-lg" id="queue-ticket-settings-tab" data-tabs-target="#queueTicketSettingsContent" type="button" role="tab" aria-controls="queueTicketSettingsContent" aria-selected="false">
+                    6. ตั้งค่าบัตรคิว
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="settingsTabContent">
+        <!-- Initialize System Content -->
+        <div class="settings-tab-pane" id="initSystemContent" role="tabpanel" aria-labelledby="init-system-tab">
+            <div class="bg-yellow-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-yellow-700 mb-3">1. เริ่มต้นระบบ</h3>
+                <p class="text-sm text-yellow-600 mb-4">
+                    ใช้สำหรับสร้างชีทและข้อมูลเริ่มต้นที่จำเป็นสำหรับระบบ หากเป็นการติดตั้งครั้งแรกหรือต้องการล้างข้อมูลเริ่มต้น (ข้อมูลคิวจะไม่ถูกลบด้วยฟังก์ชันนี้)
+                </p>
+                <button id="runInitializeSystemBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+                    ดำเนินการเริ่มต้นระบบ
+                </button>
+                <div id="initSystemMessage" class="mt-3 text-sm"></div>
+            </div>
+        </div>
+
+        <!-- General Settings Content -->
+        <div class="settings-tab-pane hidden" id="generalSettingsContent" role="tabpanel" aria-labelledby="general-settings-tab">
+            <div class="bg-blue-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-blue-700 mb-3">2. ตั้งค่าทั่วไป (General Settings)</h3>
+                <p class="text-sm text-blue-600 mb-4">
+                    จัดการข้อมูลพื้นฐานของระบบ เช่น ชื่อหน่วยงาน และเสียงแจ้งเตือนทั่วไป
+                </p>
+                <div id="generalSettingsFormArea">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="orgNameInput" class="block text-sm font-medium text-gray-700">ชื่อหน่วยงาน (Organization Name):</label>
+                            <input type="text" id="orgNameInput" name="OrganizationName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="soundUrlInput" class="block text-sm font-medium text-gray-700">Sound URL (เสียงแจ้งเตือนทั่วไป ถ้ามี):</label>
+                            <input type="url" id="soundUrlInput" name="SoundURL" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., https://example.com/notification.mp3">
+                        </div>
+                        <button id="saveGeneralSettingsBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                            บันทึกการตั้งค่าทั่วไป
+                        </button>
+                        <div id="generalSettingsMessage" class="mt-3 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display Settings Content -->
+        <div class="settings-tab-pane hidden" id="displaySettingsContent" role="tabpanel" aria-labelledby="display-settings-tab">
+            <div class="bg-purple-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-purple-700 mb-3">3. ตั้งค่าการแสดงผล (Display Settings)</h3>
+                <p class="text-sm text-purple-600 mb-4">
+                    กำหนดรูปแบบการแสดงผลของป้ายประชาสัมพันธ์ เลือกระหว่างการแสดงวิดีโอหรือรูปภาพแบบสไลด์โชว์
+                </p>
+                <div id="displaySettingsFormArea">
+                    <div class="space-y-6">
+                        <!-- Display Type Selection -->
+                        <div class="bg-white p-4 rounded-lg border border-purple-200">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">รูปแบบการแสดงผล:</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input id="displayTypeVideo" name="display_type" type="radio" value="video" class="focus:ring-purple-500 h-4 w-4 text-purple-600 border-gray-300">
+                                    <label for="displayTypeVideo" class="ml-3 block text-sm font-medium text-gray-700">แสดงวิดีโอ (YouTube)</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="displayTypeSlideshow" name="display_type" type="radio" value="slideshow" class="focus:ring-purple-500 h-4 w-4 text-purple-600 border-gray-300">
+                                    <label for="displayTypeSlideshow" class="ml-3 block text-sm font-medium text-gray-700">แสดงรูปภาพแบบสไลด์โชว์</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Video Settings (YouTube) -->
+                        <div id="videoSettingsSection" class="bg-white p-4 rounded-lg border border-purple-200">
+                            <h4 class="text-md font-semibold text-purple-700 mb-3">ตั้งค่าวิดีโอ</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="mediaUrlInput" class="block text-sm font-medium text-gray-700">YouTube Video URL:</label>
+                                    <input type="url" id="mediaUrlInput" name="MediaURL" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="e.g., https://www.youtube.com/watch?v=VIDEO_ID">
+                                    <p class="mt-1 text-xs text-gray-500">หากเป็น YouTube ให้ใช้ลิงก์แบบ watch?v=... หรือ embed/... ก็ได้ ระบบจะแปลงให้เอง</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slideshow Settings -->
+                        <div id="slideshowSettingsSection" class="bg-white p-4 rounded-lg border border-purple-200">
+                            <h4 class="text-md font-semibold text-purple-700 mb-3">ตั้งค่าสไลด์โชว์</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-500 mb-2">รูปภาพสไลด์โชว์จะถูกจัดการผ่านชีท "SlideshowImages" โดยอัตโนมัติ</p>
+                                    <a href="#" id="manageSlideshowImagesBtn" class="inline-flex items-center text-sm text-purple-600 hover:text-purple-800">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        ดูรูปภาพทั้งหมดในชีท
+                                    </a>
+                                </div>
+                                <div>
+                                    <label for="slideshowIntervalInput" class="block text-sm font-medium text-gray-700">ระยะเวลาแสดงแต่ละรูป (วินาที):</label>
+                                    <input type="number" id="slideshowIntervalInput" name="SlideshowInterval" min="1" max="60" value="7" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label for="slideshowTransitionInput" class="block text-sm font-medium text-gray-700">รูปแบบการเปลี่ยนภาพ:</label>
+                                    <select id="slideshowTransitionInput" name="SlideshowTransition" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm">
+                                        <option value="fade">ค่อยๆ จางภาพ (Fade)</option>
+                                        <option value="slide">เลื่อนภาพ (Slide)</option>
+                                        <option value="none">ไม่มีเอฟเฟกต์</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="saveDisplaySettingsBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">
+                            บันทึกการตั้งค่าการแสดงผล
+                        </button>
+                        <div id="displaySettingsMessage" class="mt-3 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound Management Content -->
+        <div class="settings-tab-pane hidden" id="soundManagementContent" role="tabpanel" aria-labelledby="sound-management-tab">
+            <div class="bg-green-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-green-700 mb-3">3. จัดการเสียงเรียกคิว (Sound Management)</h3>
+                <p class="text-sm text-green-600 mb-4">
+                    เพิ่ม ลบ หรือแก้ไขไฟล์เสียงที่ใช้ในการประกาศเรียกคิว (ID, ชื่อเสียง, ลิงก์เสียง)
+                </p>
+                <div id="soundManagementArea">
+                    <!-- Add New Sound Form -->
+                    <div class="mb-6 p-4 border border-green-200 rounded-md">
+                        <h4 class="text-md font-semibold text-green-600 mb-3">เพิ่มเสียงใหม่</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                            <div>
+                                <label for="newSoundName" class="block text-sm font-medium text-gray-700">ชื่อเสียง (เช่น เสียงเลข 1, เสียงเชิญหมายเลข):</label>
+                                <input type="text" id="newSoundName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="newSoundLink" class="block text-sm font-medium text-gray-700">ลิงก์ไฟล์เสียง (URL):</label>
+                                <input type="url" id="newSoundLink" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="https://example.com/sound.mp3">
+                            </div>
+                            <div>
+                                <label for="newSoundDescription" class="block text-sm font-medium text-gray-700">คำอธิบาย:</label>
+                                <input type="text" id="newSoundDescription" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="newSoundType" class="block text-sm font-medium text-gray-700">ประเภทเสียง:</label>
+                                <select id="newSoundType" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    <option value="general_purpose">ทั่วไป</option>
+                                    <option value="digit_0">เลข 0</option><option value="digit_1">เลข 1</option><option value="digit_2">เลข 2</option><option value="digit_3">เลข 3</option><option value="digit_4">เลข 4</option><option value="digit_5">เลข 5</option><option value="digit_6">เลข 6</option><option value="digit_7">เลข 7</option><option value="digit_8">เลข 8</option><option value="digit_9">เลข 9</option>
+                                    <option value="start_call">เสียงเริ่มเรียก (start_call)</option>
+                                    <option value="end_call">เสียงจบการเรียก (end_call)</option>
+                                    <option value="counter_prefix">เสียงนำหน้าช่อง (counter_prefix)</option>
+                                </select>
+                            </div>
+                            <button id="addSoundBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded h-fit">
+                                เพิ่มเสียง
+                            </button>
+                        </div>
+                        <div id="addSoundMessage" class="mt-2 text-sm"></div>
+                    </div>
+
+                    <!-- Sound Table -->
+                    <h4 class="text-md font-semibold text-green-600 mb-3">รายการเสียงที่มีอยู่</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อเสียง</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลิงก์เสียง</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">คำอธิบาย</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภทเสียง</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="soundTableBody" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">กำลังโหลดข้อมูลเสียง...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="soundTableMessage" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcement Settings Content -->
+        <div class="settings-tab-pane hidden" id="announcementSettingsContent" role="tabpanel" aria-labelledby="announcement-settings-tab">
+            <div class="bg-teal-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-teal-700 mb-3">4. จัดการรูปแบบเสียงเรียกคิว (Announcement Format)</h3>
+                <p class="text-sm text-teal-600 mb-5">
+                    กำหนดรูปแบบและส่วนประกอบของเสียงประกาศเรียกคิว รวมถึงการเลือกใช้เสียงสำหรับชื่อช่องบริการ
+                </p>
+                <div class="space-y-6">
+                    <div>
+                        <label for="announcementPatternInput" class="block text-sm font-medium text-gray-700">รูปแบบเสียงเรียกคิว (Announcement Pattern):</label>
+                        <input type="text" id="announcementPatternInput" name="default_announcement_pattern" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm" placeholder="e.g., SOUND_TYPE_START_CALL,{QUEUE_NUMBER},SOUND_TYPE_COUNTER_PREFIX,{COUNTER_NUMBER}">
+                        <p class="mt-1 text-xs text-gray-500">
+                            ใช้ placeholders: <code>{QUEUE_NUMBER}</code>, <code>{COUNTER_NUMBER}</code>.<br>
+                            ใช้ ID เสียงจากตารางเสียง (เช่น <code>11</code>) หรือประเภทเสียงมาตรฐาน (เช่น <code>SOUND_TYPE_START_CALL</code>, <code>SOUND_TYPE_COUNTER_PREFIX</code>, <code>SOUND_TYPE_END_CALL</code>).<br>
+                            คั่นแต่ละส่วนด้วยจุลภาค (<code>,</code>). ตัวอย่าง: <code>11,{QUEUE_NUMBER},13,{COUNTER_NUMBER}</code>
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">การประกาศหมายเลข/ชื่อช่องบริการ (Counter Announcement Type):</label>
+                        <div class="mt-2 space-y-2">
+                            <div class="flex items-center">
+                                <input id="counterAnnounceNumber" name="counter_announcement_type_option" type="radio" value="number" class="focus:ring-teal-500 h-4 w-4 text-teal-600 border-gray-300">
+                                <label for="counterAnnounceNumber" class="ml-3 block text-sm font-medium text-gray-700">ใช้หมายเลขช่องบริการ (เช่น ช่อง 1, 2, 3)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="counterAnnounceNameSound" name="counter_announcement_type_option" type="radio" value="name_sound" class="focus:ring-teal-500 h-4 w-4 text-teal-600 border-gray-300">
+                                <label for="counterAnnounceNameSound" class="ml-3 block text-sm font-medium text-gray-700">ใช้เสียงชื่อช่องบริการ (ถ้ามีการตั้งค่า NameSoundID ในหน้าจัดการช่องบริการ)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="saveAnnouncementSettingsBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded">
+                        บันทึกการตั้งค่ารูปแบบเสียง
+                    </button>
+                    <div id="announcementSettingsMessage" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+        </div>
+    <!-- Queue Ticket Settings Content -->
+        <div class="settings-tab-pane hidden" id="queueTicketSettingsContent" role="tabpanel" aria-labelledby="queue-ticket-settings-tab">
+            <div class="bg-amber-50 p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-amber-700 mb-3">6. ตั้งค่าบัตรคิว (Queue Ticket Settings)</h3>
+                <p class="text-sm text-amber-600 mb-5">
+                    กำหนดรูปแบบและการตั้งค่าสำหรับบัตรคิวที่จะพิมพ์เมื่อมีการจองคิว
+                </p>
+                <div class="space-y-6">
+                    <!-- Auto Print Option -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">การพิมพ์บัตรคิวอัตโนมัติ:</label>
+                        <div class="mt-2 space-y-2">
+                            <div class="flex items-center">
+                                <input id="autoPrintEnabled" name="auto_print_option" type="radio" value="enabled" class="focus:ring-amber-500 h-4 w-4 text-amber-600 border-gray-300">
+                                <label for="autoPrintEnabled" class="ml-3 block text-sm font-medium text-gray-700">พิมพ์บัตรคิวอัตโนมัติเมื่อมีการจองคิว</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="autoPrintDisabled" name="auto_print_option" type="radio" value="disabled" class="focus:ring-amber-500 h-4 w-4 text-amber-600 border-gray-300">
+                                <label for="autoPrintDisabled" class="ml-3 block text-sm font-medium text-gray-700">ไม่พิมพ์บัตรคิวอัตโนมัติ (ผู้ใช้ต้องกดปุ่มพิมพ์เอง)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Title -->
+                    <div>
+                        <label for="ticketTitleInput" class="block text-sm font-medium text-gray-700">ข้อความหัวบัตรคิว:</label>
+                        <input type="text" id="ticketTitleInput" name="ticket_title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm" placeholder="บัตรคิว">
+                        <p class="mt-1 text-xs text-gray-500">
+                            ข้อความที่จะแสดงแทนคำว่า "บัตรคิว" เช่น ชื่อหน่วยงาน หรือข้อความอื่นๆ
+                        </p>
+                    </div>
+
+                    <!-- Ticket Size -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ขนาดบัตรคิว:</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="ticketWidthInput" class="block text-sm font-medium text-gray-700">ความกว้าง (มม.):</label>
+                                <input type="number" id="ticketWidthInput" name="ticket_width" min="50" max="300" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm" placeholder="80">
+                            </div>
+                            <div>
+                                <label for="ticketHeightInput" class="block text-sm font-medium text-gray-700">ความสูง (มม.):</label>
+                                <input type="number" id="ticketHeightInput" name="ticket_height" min="50" max="300" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm" placeholder="150">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="saveQueueTicketSettingsBtn" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded">
+                        บันทึกการตั้งค่าบัตรคิว
+                    </button>
+                    <div id="queueTicketSettingsMessage" class="mt-3 text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Edit Sound Modal (Initially Hidden) -->
+    <div id="editSoundModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">แก้ไขข้อมูลเสียง</h3>
+                <div class="mt-2 space-y-3">
+                  <input type="hidden" id="editSoundId">
+                  <div>
+                    <label for="editSoundNameInput" class="block text-sm font-medium text-gray-700">ชื่อเสียง:</label>
+                    <input type="text" id="editSoundNameInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  </div>
+                  <div>
+                    <label for="editSoundLinkInput" class="block text-sm font-medium text-gray-700">ลิงก์เสียง:</label>
+                    <input type="url" id="editSoundLinkInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  </div>
+                  <div>
+                    <label for="editSoundDescriptionInput" class="block text-sm font-medium text-gray-700">คำอธิบาย:</label>
+                    <input type="text" id="editSoundDescriptionInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  </div>
+                  <div>
+                    <label for="editSoundTypeInput" class="block text-sm font-medium text-gray-700">ประเภทเสียง:</label>
+                    <select id="editSoundTypeInput" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         <option value="general_purpose">ทั่วไป</option><option value="digit_0">เลข 0</option><option value="digit_1">เลข 1</option><option value="digit_2">เลข 2</option><option value="digit_3">เลข 3</option><option value="digit_4">เลข 4</option><option value="digit_5">เลข 5</option><option value="digit_6">เลข 6</option><option value="digit_7">เลข 7</option><option value="digit_8">เลข 8</option><option value="digit_9">เลข 9</option><option value="start_call">เสียงเริ่มเรียก (start_call)</option><option value="end_call">เสียงจบการเรียก (end_call)</option><option value="counter_prefix">เสียงนำหน้าช่อง (counter_prefix)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="editSoundModalMessage" class="px-6 py-2 text-sm"></div>
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button type="button" id="saveEditSoundBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+              บันทึก
+            </button>
+            <button type="button" id="cancelEditSoundBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+              ยกเลิก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>

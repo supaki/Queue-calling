@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบเรียกคิวออนไลน์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <?!= include('css/styles'); ?>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div id="app">
+    <!-- Login Form -->
+    <div id="loginForm" class="container mx-auto px-4 py-12 max-w-md hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">ระบบเรียกคิวออนไลน์</h1>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="username">ชื่อผู้ใช้</label>
+          <input id="username" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="password">รหัสผ่าน</label>
+          <input id="password" type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="flex items-center justify-between">
+          <button id="loginBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+            เข้าสู่ระบบ
+          </button>
+        </div>
+        <div id="loginError" class="text-red-500 text-center mt-4 hidden"></div>
+      </div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div id="dashboard" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold text-blue-600">ระบบเรียกคิวออนไลน์</h1>
+          <div class="flex items-center">
+            <span id="userInfo" class="mr-4 text-gray-600"></span>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+              ออกจากระบบ
+            </button>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-blue-50 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h2 class="text-xl font-semibold text-blue-700 mb-4">จองคิว</h2>
+            <p class="text-gray-600 mb-4">สำหรับผู้ใช้บริการจองคิวใหม่</p>
+            <button id="userPageBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              เข้าสู่หน้าจองคิว
+            </button>
+          </div>
+          
+          <div class="bg-green-50 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h2 class="text-xl font-semibold text-green-700 mb-4">แสดงผลคิว</h2>
+            <p class="text-gray-600 mb-4">แสดงหน้าจอสำหรับผู้รอคิว</p>
+            <button id="displayPageBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+              เข้าสู่หน้าแสดงผล
+            </button>
+          </div>
+          
+          <div id="adminPanel" class="bg-purple-50 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h2 class="text-xl font-semibold text-purple-700 mb-4">แอดมิน</h2>
+            <p class="text-gray-600 mb-4">จัดการระบบเรียกคิว</p>
+            <button id="adminPageBtn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+              เข้าสู่หน้าแอดมิน
+            </button>
+          </div>
+          
+          <div class="bg-yellow-50 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+            <h2 class="text-xl font-semibold text-yellow-700 mb-4">ตั้งค่าระบบ</h2>
+            <p class="text-gray-600 mb-4">ตั้งค่าพื้นฐานของระบบ</p>
+            <button id="settingsPageBtn" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+              เข้าสู่หน้าตั้งค่า
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- SPA Sections -->
+    <div id="userSection" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">หน้าจองคิว</h2>
+        
+        <?!= include('user'); ?>
+        <button class="mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" onclick="showSection('dashboard')">กลับหน้าหลัก</button>
+         <button id="logoutBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            ออกจากระบบ
+          </button>
+      </div>
+    </div>
+    
+    <div id="displaySection" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-green-700 mb-4">หน้าแสดงผลคิว</h2>
+        
+        
+        <button class="mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" onclick="showSection('dashboard')">กลับหน้าหลัก</button>
+        
+      </div>
+    </div>
+    
+    <div id="adminSection" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-purple-700 mb-4">หน้าแอดมิน</h2>
+        
+        <?!= include('admin'); ?>
+        <button class="mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" onclick="showSection('dashboard')">กลับหน้าหลัก</button>
+      </div>
+    </div>
+    
+     <div id="settingsSection" class="container mx-auto px-4 py-8 max-w-4xl hidden">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-gray-700">ตั้งค่าระบบ</h2>
+         </div>
+        <?!= include('settings'); ?>
+         <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" onclick="showSection('dashboard')">กลับหน้าหลัก</button>
+        
+      </div>
+    </div>
+  
+  
+  <?!= include('js/main'); ?>
+  <?!= include('js/auth'); ?>
+  <?!= include('js/user'); ?>  
+  <?!= include('js/admin'); ?>
+  <?!= include('js/settings'); ?>
+
+  <script>
+
+   
+    // ตรวจสอบว่ามี element หรือไม่ก่อนผูก event
+    document.addEventListener('DOMContentLoaded', function() {
+      // Event listeners สำหรับปุ่มต่างๆ จะถูกจัดการใน js/main.html และ js/auth.html
+      // สามารถลบโค้ดในส่วนนี้ที่เกี่ยวกับการผูก event listener ของปุ่มเหล่านั้นออกได้
+    });
+
+    
+    
+
+  </script>
+</body>
+</html>

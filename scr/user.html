@@ -1,0 +1,38 @@
+<div class="flex flex-col md:flex-row gap-6 md:gap-8 p-4 md:p-6">
+    <!-- Column 1: Create Queue Button -->
+    <div class="w-full md:w-1/2">
+        <div class="bg-purple-700 text-white p-6 rounded-lg h-full flex flex-col justify-center items-center">
+            <button id="createQueueBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-8 px-6 rounded-lg transition-colors text-4xl md:text-5xl lg:text-6xl font-bold w-full h-full min-h-[200px] md:min-h-[300px]">
+                กดจองคิว
+            </button>
+        </div>
+    </div>
+
+    <!-- Column 2: Queue Result -->
+    <div class="w-full md:w-1/2">
+        <div id="app" class="container mx-auto"> <!-- Removed px-4 py-8 max-w-4xl to allow parent to control padding -->
+            <div class="bg-white rounded-lg shadow-lg p-6 h-full flex flex-col justify-center">
+                <div id="queueResult" class="text-center"> <!-- Removed py-8, parent div handles centering -->
+                    <h2 id="reserveQueue" class="text-2xl font-bold text-green-600 mb-4 hidden">จองคิวสำเร็จ</h2>
+                    <div class="bg-green-50 p-6 rounded-lg mb-6">
+                        <p class="text-gray-700 mb-2">หมายเลขคิวของคุณคือ</p>
+                        <p id="queueNumber" class="text-5xl md:text-6xl font-bold text-green-700 mb-4"></p>
+                        <p id="counterName" class="text-xl text-gray-700"></p> <!-- This might not be used or needs data -->
+                    </div>
+                    <button id="printQueueBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded focus:outline-none focus:shadow-outline text-lg">
+                        พิมพ์บัตรคิว
+                    </button>
+                </div>
+
+                <div id="printArea" class="hidden mt-6"> <!-- Added margin top for spacing if shown -->
+                    <div class="p-4 border-2 border-dashed border-gray-300 text-center">
+                        <h3 class="text-xl font-bold" id="printTicketTitle">บัตรคิว</h3>
+                        <p class="text-4xl font-bold my-4" id="printQueueNumber"></p>
+                        <p id="printCounterName" class="mb-2"></p> <!-- This might not be used or needs data -->
+                        <p id="printDateTime" class="text-sm text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

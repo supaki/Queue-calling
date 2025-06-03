@@ -1,0 +1,727 @@
+<script>
+
+
+        let currentCallingQueue = null; // Stores the object of the currently calling queue
+
+        // Simplified tab switching logic (add to your admin.js or js/admin.html)
+document.addEventListener('DOMContentLoaded', function() {
+    const adminTabs = document.querySelectorAll('.admin-tab-button');
+    const adminTabPanes = document.querySelectorAll('.admin-tab-pane');
+    // Classes for tab styling similar to settings page
+    const activeTabClasses = ['border-indigo-500', 'text-indigo-600', 'font-semibold', 'bg-indigo-50']; 
+    const inactiveTabClasses = ['border-transparent', 'hover:text-gray-700', 'hover:border-gray-300', 'text-gray-500'];
+
+    function activateTab(selectedTab) {
+        adminTabs.forEach(tab => {
+            tab.classList.remove(...activeTabClasses);
+            tab.classList.add(...inactiveTabClasses);
+            tab.setAttribute('aria-selected', 'false');
+        });
+        selectedTab.classList.add(...activeTabClasses);
+        selectedTab.classList.remove(...inactiveTabClasses);
+        selectedTab.setAttribute('aria-selected', 'true');
+
+        const targetPaneId = selectedTab.dataset.tab + 'Tab';
+        adminTabPanes.forEach(pane => {
+            if (pane.id === targetPaneId) {
+                pane.classList.remove('hidden');
+                // If specific content needs loading when tab is shown:
+                if (targetPaneId === 'countersTab') loadAdminCountersData(); 
+                if (targetPaneId === 'callTab') loadActiveCounters(); // Assuming this populates #activeCounters
+                if (targetPaneId === 'allqueuesTab') loadAdminDashboardData(); // To refresh the all queues table
+            } else {
+                pane.classList.add('hidden');
+            }
+        });
+    }
+
+    adminTabs.forEach(tab => {
+        tab.addEventListener('click', () => activateTab(tab));
+    });
+
+    if (adminTabs.length > 0) {
+        activateTab(adminTabs[0]); // Activate the first tab by default
+    }
+
+    // Refresh button for active counters in "Call Queue" tab
+    const refreshCountersBtn = document.getElementById('refreshCountersBtn');
+    if (refreshCountersBtn) {
+        refreshCountersBtn.addEventListener('click', loadActiveCounters); // Assumes loadActiveCounters is defined
+    }
+});
+
+// Placeholder for function to load data for Manage Counters tab
+function loadAdminCountersData() {
+    console.log("Loading admin counters data...");
+    google.script.run.withSuccessHandler(response => {
+        if (response.success) {
+            populateAdminCountersTable(response.data);
+        } else {
+            document.getElementById('adminCountersTableMessage').textContent = 'Error: ' + response.message;
+        }
+    }).withFailureHandler(err => {
+         document.getElementById('adminCountersTableMessage').textContent = 'Server error: ' + err.message;
+    }).getAllCountersAdmin(); // You'll need this new function in Code.js
+}
+
+function populateAdminCountersTable(counters) {
+    const tbody = document.getElementById('adminCountersTableBody');
+    tbody.innerHTML = ''; // Clear existing rows
+    if (!counters || counters.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">ไม่พบข้อมูลช่องบริการ</td></tr>';
+        return;
+    }
+    counters.forEach(counter => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${counter.id}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${counter.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" value="${counter.id}" class="sr-only peer counter-status-toggle" ${counter.status === 'active' ? 'checked' : ''} data-counter-name="${counter.name}">
+                  <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <span class="ms-3 text-sm font-medium text-gray-700">${counter.status === 'active' ? 'Active' : 'Inactive'}</span>
+                </label>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="openEditCounterModalAdmin('${counter.id}', '${escapeSingleQuotes(counter.name)}')" class="text-indigo-600 hover:text-indigo-900 mr-2">แก้ไข</button>
+                <button onclick="deleteCounterAdmin('${counter.id}')" class="text-red-600 hover:text-red-900">ลบ</button>
+            </td>
+        `;
+    });
+    // Add event listeners for new toggles
+    document.querySelectorAll('.counter-status-toggle').forEach(toggle => {
+        toggle.addEventListener('change', handleCounterStatusToggle);
+    });
+}
+
+function escapeSingleQuotes(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/'/g, '\\\'');
+}
+
+function handleCounterStatusToggle(event) {
+    const counterId = event.target.value;
+    const counterName = event.target.dataset.counterName; // Get name from data attribute
+    const newStatus = event.target.checked ? 'active' : 'inactive';
+    // Update the text next to the toggle
+    const span = event.target.closest('label').querySelector('span');
+    if (span) {
+        span.textContent = newStatus === 'active' ? 'Active' : 'Inactive';
+    }
+
+    google.script.run.withSuccessHandler(response => {
+        if (response.success) {
+            // Optionally show a success message
+            console.log(`Counter ${counterId} status updated to ${newStatus}`);
+            // Refresh the active counters if the call tab is visible or if this change affects it
+            loadActiveCounters(); 
+        } else {
+            alert('Error updating counter status: ' + response.message);
+            // Revert toggle if update failed
+            event.target.checked = !event.target.checked;
+            if (span) {
+               span.textContent = event.target.checked ? 'Active' : 'Inactive';
+            }
+        }
+    }).withFailureHandler(err => {
+        alert('Server error: ' + err.message);
+        event.target.checked = !event.target.checked;
+         if (span) {
+            span.textContent = event.target.checked ? 'Active' : 'Inactive';
+         }
+    }).updateCounter(counterId, counterName, newStatus); // Pass name to updateCounter
+}
+
+// Add Counter (Admin)
+const addCounterBtnAdmin = document.getElementById('addCounterBtnAdmin');
+if (addCounterBtnAdmin) {
+    addCounterBtnAdmin.addEventListener('click', () => {
+        const name = document.getElementById('newCounterNameAdmin').value.trim();
+        const messageDiv = document.getElementById('addCounterMessageAdmin');
+        if (!name) {
+            messageDiv.textContent = 'กรุณาใส่ชื่อช่องบริการ';
+            messageDiv.className = 'mt-3 text-sm text-red-600';
+            return;
+        }
+        messageDiv.textContent = 'กำลังเพิ่ม...';
+        messageDiv.className = 'mt-3 text-sm text-blue-600';
+        google.script.run.withSuccessHandler(response => {
+            if (response.success) {
+                messageDiv.textContent = `เพิ่มช่องบริการ "${response.name}" สำเร็จ (ID: ${response.id})`;
+                messageDiv.className = 'mt-3 text-sm text-green-600';
+                document.getElementById('newCounterNameAdmin').value = '';
+                loadAdminCountersData(); // Refresh table
+                loadActiveCounters(); // Refresh active counters in call tab
+            } else {
+                messageDiv.textContent = 'ผิดพลาด: ' + response.message;
+                messageDiv.className = 'mt-3 text-sm text-red-600';
+            }
+        }).withFailureHandler(err => {
+             messageDiv.textContent = 'Server error: ' + err.message;
+             messageDiv.className = 'mt-3 text-sm text-red-600';
+        }).addCounter(name);
+    });
+}
+
+// Edit Counter Modal Logic (Admin)
+const editModalAdmin = document.getElementById('editCounterModalAdmin');
+const cancelEditBtnAdmin = document.getElementById('cancelEditCounterBtnAdmin');
+const saveEditBtnAdmin = document.getElementById('saveEditCounterBtnAdmin');
+
+function openEditCounterModalAdmin(id, name) {
+    document.getElementById('editCounterIdAdmin').value = id;
+    document.getElementById('editCounterNameInputAdmin').value = name;
+    document.getElementById('editCounterModalMessageAdmin').textContent = '';
+    if(editModalAdmin) editModalAdmin.classList.remove('hidden');
+}
+
+if(cancelEditBtnAdmin) cancelEditBtnAdmin.addEventListener('click', () => editModalAdmin.classList.add('hidden'));
+
+if(saveEditBtnAdmin) {
+    saveEditBtnAdmin.addEventListener('click', () => {
+        const id = document.getElementById('editCounterIdAdmin').value;
+        const name = document.getElementById('editCounterNameInputAdmin').value.trim();
+        const messageDiv = document.getElementById('editCounterModalMessageAdmin');
+
+        if (!name) {
+            messageDiv.textContent = 'ชื่อช่องบริการห้ามว่าง';
+            messageDiv.className = 'px-6 py-2 text-sm text-red-600';
+            return;
+        }
+        messageDiv.textContent = 'กำลังบันทึก...';
+        messageDiv.className = 'px-6 py-2 text-sm text-blue-600';
+
+        // Assuming the status is not changed in this modal, fetch current status or pass it if needed
+        // For simplicity, we'll assume updateCounter can handle just name update or requires status.
+        // Let's modify updateCounter to fetch current status if not provided.
+        // Or, better, the client should know the current status or the updateCounter function should be flexible.
+        // For now, let's assume we need to provide the status. We can get it from the table before opening modal, or make updateCounter smarter.
+        // Simplest for now: updateCounter will update name, and status is handled by toggle.
+        // So, we need a specific function like `updateCounterName` or make `updateCounter` more flexible.
+        // Let's assume `updateCounter(id, name, currentStatus)` - we need currentStatus.
+        // For this example, I'll call a modified `updateCounter` that only updates the name if status is null.
+        // Or, more practically, the `updateCounter` function in Code.js should be robust.
+        // Let's assume the `updateCounter` function in `Code.js` takes `(id, name, status)` and we need to preserve the status.
+        // This requires fetching the counter's current status before calling update.
+        // To simplify client-side, let's assume `updateCounter` in Code.js can take `(id, newName, existingStatus)`
+        // The `handleCounterStatusToggle` already calls `updateCounter(id, name, newStatus)`.
+        // So, when just editing name, we need the *current* status.
+
+        // Find the current status from the table (less ideal, but works for demo)
+        let currentStatus = 'active'; // default
+        const row = Array.from(document.getElementById('adminCountersTableBody').querySelectorAll('tr')).find(r => r.cells[0].textContent === id);
+        if (row) {
+            const toggle = row.querySelector('.counter-status-toggle');
+            if (toggle) currentStatus = toggle.checked ? 'active' : 'inactive';
+        }
+
+
+        google.script.run.withSuccessHandler(response => {
+            if (response.success) {
+                messageDiv.textContent = 'อัปเดตสำเร็จ!';
+                messageDiv.className = 'px-6 py-2 text-sm text-green-600';
+                setTimeout(() => {
+                    if(editModalAdmin) editModalAdmin.classList.add('hidden');
+                    loadAdminCountersData(); // Refresh table
+                    loadActiveCounters(); // Refresh active counters
+                }, 1000);
+            } else {
+                messageDiv.textContent = 'ผิดพลาด: ' + response.message;
+                messageDiv.className = 'px-6 py-2 text-sm text-red-600';
+            }
+        }).withFailureHandler(err => {
+            messageDiv.textContent = 'Server error: ' + err.message;
+            messageDiv.className = 'px-6 py-2 text-sm text-red-600';
+        }).updateCounter(id, name, currentStatus); // Pass current status
+    });
+}
+
+function deleteCounterAdmin(id) {
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบช่องบริการ ID: ${id}? การกระทำนี้ไม่สามารถย้อนกลับได้`)) {
+        return;
+    }
+    google.script.run.withSuccessHandler(response => {
+        if (response.success) {
+            alert('ลบช่องบริการสำเร็จ!');
+            loadAdminCountersData(); // Refresh table
+            loadActiveCounters(); // Refresh active counters
+        } else {
+            alert('ผิดพลาดในการลบ: ' + response.message);
+        }
+    }).withFailureHandler(err => {
+        alert('Server error: ' + err.message);
+    }).deleteCounter(id); // You'll need this new function in Code.js
+}
+
+
+        // --- Data Fetching and Initial Load ---
+        function initializeAdminPage() {
+            loadCurrentStatusAndHistory();
+            loadActiveCounters();
+            // Set interval to refresh data periodically if needed
+            // setInterval(loadCurrentStatusAndHistory, 15000); // e.g., every 15 seconds
+            // setInterval(loadActiveCounters, 60000); // e.g., every 1 minute
+        }
+
+        function loadCurrentStatusAndHistory() {
+            google.script.run
+                .withSuccessHandler(data => {
+                    console.log("Inside withSuccessHandler. Received data type:", typeof data, "value:", data); // Added detailed log
+
+                    if (data === null) {
+                        console.error("Received null data from getAdminDashboardData. This is unexpected.");
+                        showAdminError({ message: "Received null data from server. System might be uninitialized or an unknown error occurred." });
+                        displayCurrentStatus(null, null);
+                        displayQueueHistory([], []);
+                        currentCallingQueue = null;
+                        toggleActionButtons(false);
+                        return;
+                    }
+
+                    if (data.error) {
+                        console.error("Server error in getAdminDashboardData:", data.error);
+                        showAdminError({ message: "Server error: " + data.error });
+                        // Display an error state in the UI or parts of it
+                        displayCurrentStatus(null, null); 
+                        displayQueueHistory([], []);
+                        currentCallingQueue = null;
+                        toggleActionButtons(false);
+                        return;
+                    }
+
+                    // Log the received data for debugging
+                    console.log("Data received from getAdminDashboardData:", data); 
+                    // console.log(data.calling, data.nextWaiting); // Original line that caused error
+
+                    // Add defensive checks before accessing properties
+                    displayCurrentStatus(data ? data.calling : null, data ? data.nextWaiting : null);
+                    displayQueueHistory(data ? data.completed : [], data ? data.skipped : [], data ? data.allQueuesForTable : []);
+                    // displayAllQueuesTable(data ? data.allQueuesForTable : []); // Called from displayQueueHistory now
+
+                    currentCallingQueue = data.calling; 
+                    toggleActionButtons(data.calling);
+                })
+                .withFailureHandler(handleAdminScriptError) // Use a more descriptive handler
+                .getAdminDashboardData();
+        }
+
+        function loadActiveCounters() {
+            google.script.run
+                .withSuccessHandler(displayActiveCounters)
+                .withFailureHandler(showAdminError)
+                .getCounters(); // Corrected function name to match Code.js
+        }
+
+        // --- UI Display Functions ---
+        function displayCurrentStatus(callingQueue, nextQueue) {
+            const currentQueueEl = document.getElementById('currentQueueDisplay');
+            const currentQueueNameEl = document.getElementById('currentQueueNameDisplay');
+            const nextQueueEl = document.getElementById('nextQueueDisplay');
+
+            if (callingQueue) {
+                currentQueueEl.textContent = String(callingQueue.number).padStart(3, '0');
+                currentQueueNameEl.textContent = `${callingQueue.serviceName || 'ไม่ระบุช่องบริการ'}`; // Display serviceName or a default
+            } else {
+                currentQueueEl.textContent = '-';
+                currentQueueNameEl.textContent = 'ไม่มีคิวกำลังเรียก';
+            }
+
+            if (nextQueue) {
+                nextQueueEl.textContent = String(nextQueue.number).padStart(3, '0');
+            } else {
+                nextQueueEl.textContent = '-';
+            }
+        }
+
+        function displayQueueHistory(completedQueues, skippedQueues, allQueues) {
+            const completedContainer = document.getElementById('completedQueueHistory');
+            const skippedContainer = document.getElementById('skippedQueueHistory');
+            completedContainer.innerHTML = '';
+            skippedContainer.innerHTML = '';
+
+            (completedQueues || []).slice(0, 3).forEach(item => { // Display max 3
+                // For completed queues, isSkipped is false, and no recall button needed.
+                const row = createHistoryRow(item, false, false); 
+                completedContainer.appendChild(row);
+            });
+
+            (skippedQueues || []).slice(0, 3).forEach(item => { // Display max 3
+                // For skipped queues, isSkipped is true, show reason.
+                const row = createHistoryRow(item, true, false); 
+                skippedContainer.appendChild(row);
+            });
+
+            displayAllQueuesTable(allQueues);
+        }
+
+        // Function moved to the implementation below
+
+        function displayActiveCounters(counters) {
+            const container = document.getElementById('activeCounters');
+            container.innerHTML = ''; // Clear existing
+            if (counters && counters.length > 0) {
+                counters.forEach(counter => {
+                    if (counter.status === 'active') {
+                        const button = document.createElement('button');
+                        button.className = 'bg-blue-500 hover:bg-blue-600 text-white py-6 px-4 rounded-lg transition-colors';
+                        button.onclick = () => callNextForService(counter.id, counter.name);
+                        button.innerHTML = `
+                            <div class="text-3xl font-bold mb-2">${counter.id}</div>
+                            <div class="text-sm">${counter.name}</div>
+                        `;
+                        container.appendChild(button);
+                    }
+                });
+            } else {
+                container.innerHTML = '<p class="text-center text-gray-400 col-span-full">ไม่มีช่องบริการที่เปิดใช้งาน</p>';
+            }
+        }
+
+        function displayAllQueuesTable(queues) {
+            const tableBody = document.getElementById('allQueuesTableBody');
+            tableBody.innerHTML = ''; // Clear existing
+
+            if (!queues || queues.length === 0) {
+                tableBody.innerHTML = '<p class="text-center text-gray-500 p-4">ไม่มีข้อมูลคิว</p>';
+                return;
+            }
+
+            queues.forEach(q => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-12 gap-2 p-3 items-center text-xs border-b border-gray-200 hover:bg-gray-50';
+
+                let statusClass = 'bg-gray-200 text-gray-700';
+                if (q.status === 'calling') statusClass = 'bg-purple-500 text-white animate-pulse';
+                else if (q.status === 'waiting') statusClass = 'bg-yellow-400 text-yellow-800';
+                else if (q.status === 'completed') statusClass = 'bg-green-500 text-white';
+                else if (q.status === 'skipped') statusClass = 'bg-red-500 text-white';
+
+                row.innerHTML = `
+                    <div class="col-span-1 text-center font-medium">${String(q.number).padStart(3, '0')}</div>
+                    <div class="col-span-2">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                            ${q.status === 'waiting' ? 'รอเรียก' : 
+                              q.status === 'calling' ? 'กำลังเรียก' : 
+                              q.status === 'completed' ? 'สำเร็จ' : 
+                              q.status === 'skipped' ? 'ข้ามแล้ว' : q.status}
+                        </span>
+                    </div>
+                    <div class="col-span-3 text-gray-600">${q.createdAt ? new Date(q.createdAt).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                    <div class="col-span-3 text-gray-600">${q.calledAt ? new Date(q.calledAt).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                    <div class="col-span-1 text-center text-blue-600 font-semibold">${q.serviceName || '-'}</div>
+                    <div class="col-span-2 text-gray-500 truncate" title="${q.reason || ''}">${q.reason || '-'}</div>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+
+        function createHistoryRow(item, isSkipped, showRecallButton) { // Added showRecallButton parameter
+            const row = document.createElement('div');
+            // Default to 4 columns for skipped, 3 for completed (if no recall)
+            row.className = `grid ${isSkipped || showRecallButton ? 'grid-cols-4' : 'grid-cols-3'} gap-4 p-4 items-center text-sm`;
+            
+            let actionContent = '';
+            if (isSkipped) {
+                actionContent = `<div class="text-gray-500 text-xs truncate" title="${item.reason || ''}">${item.reason || '-'}</div>`;
+            } else if (showRecallButton) { // This part is now effectively unused for completed queues based on request
+                actionContent = `
+                    <button class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs transition-colors" onclick="recallQueueFromHistory('${item.number}', '${item.serviceId}')">
+                        เรียกซ้ำ
+                    </button>`;
+            }
+
+            // Format date and time
+            let formattedDateTime = 'N/A';
+            if (item.timestamp) {
+                const date = new Date(item.timestamp);
+                formattedDateTime = date.toLocaleString('th-TH', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+
+            // For completed queues, we want to show only the queue number in the first column
+            if (!isSkipped) {
+                row.innerHTML = `
+                    <div class="font-medium">${String(item.number || '0').padStart(3, '0')}</div>
+                    <div class="col-span-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white text-xs rounded-full">
+                            ${item.serviceId || '-'}
+                        </span>
+                        <span class="ml-2">${item.serviceName || 'ไม่ระบุ'}</span>
+                    </div>
+                    <div class="text-gray-600">${formattedDateTime}</div>
+                `;
+            } else {
+                // For skipped queues, keep the original format
+                row.innerHTML = `
+                    <div class="font-medium">${String(item.number || '0').padStart(3, '0')}</div>
+                    <div>
+                        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white text-xs rounded-full">
+                            ${item.serviceId || '-'}
+                        </span>
+                        <span class="ml-2">${item.serviceName || 'ไม่ระบุ'}</span>
+                    </div>
+                    <div class="text-gray-600">${formattedDateTime}</div>
+                    ${actionContent}
+                `;
+            }
+            return row;
+        }
+
+        function toggleActionButtons(callingQueueExists) {
+            const completeBtn = document.getElementById('completeQueueBtn');
+            const skipBtn = document.getElementById('skipQueueBtn');
+            const recallBtn = document.getElementById('recallQueueBtn');
+            if (callingQueueExists) {
+                completeBtn.disabled = false;
+                skipBtn.disabled = false;
+                recallBtn.disabled = false;
+            } else {
+                completeBtn.disabled = true;
+                skipBtn.disabled = true;
+                recallBtn.disabled = true;
+            }
+        }
+
+        // --- Action Functions ---
+        function callNextForService(counterId, counterName) {
+            showAdminNotification(`กำลังเรียกคิวสำหรับ ${counterName}...`, 'info');
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        showAdminNotification(`เรียกคิว ${String(result.calledQueue.number).padStart(3, '0')} ไปที่ ${counterName} สำเร็จ`, 'success');
+                        loadCurrentStatusAndHistory(); // Refresh dashboard
+                    } else {
+                        showAdminNotification(result.message || `ไม่สามารถเรียกคิวสำหรับ ${counterName} ได้`, 'error');
+                    }
+                })
+                .withFailureHandler(handleAdminScriptError)
+                .callNextQueueForService(counterId); // Backend function
+        }
+
+        function completeCurrentQueue() {
+            if (!currentCallingQueue) {
+                showAdminNotification('ไม่มีคิวกำลังเรียกให้ดำเนินการ', 'warning');
+                return;
+            }
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        showAdminNotification(`คิว ${String(currentCallingQueue.number).padStart(3, '0')} เสร็จสิ้น`, 'success');
+                        loadCurrentStatusAndHistory();
+                    } else {
+                        showAdminNotification(result.message || 'ไม่สามารถบันทึกการเสร็จสิ้นคิว', 'error');
+                    }
+                })
+                .withFailureHandler(handleAdminScriptError)
+                .markQueueAsCompleted(); // Backend function (queueNumber is not needed as it finds 'calling')
+        }
+
+        function skipCurrentQueue() {
+            if (!currentCallingQueue) {
+                showAdminNotification('ไม่มีคิวกำลังเรียกให้ดำเนินการ', 'warning');
+                return;
+            }
+            // Optionally, prompt for a reason
+            // const reason = prompt("ระบุเหตุผลการข้ามคิว (ถ้ามี):");
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        showAdminNotification(`ข้ามคิว ${String(currentCallingQueue.number).padStart(3, '0')} สำเร็จ`, 'success');
+                        loadCurrentStatusAndHistory();
+                    } else {
+                        showAdminNotification(result.message || 'ไม่สามารถข้ามคิวได้', 'error');
+                    }
+                })
+                .withFailureHandler(handleAdminScriptError)
+                .markQueueAsSkipped(/* reason */); // Backend function (queueNumber is not needed, reason is optional)
+        }
+
+        function recallCurrentQueue() {
+            if (!currentCallingQueue || !currentCallingQueue.number || !currentCallingQueue.counterId) {
+                showAdminNotification('ไม่มีคิวกำลังเรียกให้เรียกซ้ำ', 'warning');
+                return;
+            }
+            showAdminNotification(`กำลังส่งสัญญาณเรียกคิว ${String(currentCallingQueue.number).padStart(3, '0')} ซ้ำ...`, 'info');
+            google.script.run
+                .withSuccessHandler(result => {
+                    if (result.success) {
+                        showAdminNotification(`ส่งสัญญาณเรียกคิว ${String(currentCallingQueue.number).padStart(3, '0')} ซ้ำสำเร็จ`, 'success');
+                        // ไม่จำเป็นต้อง loadCurrentStatusAndHistory() เพราะข้อมูลคิวหลักไม่ได้เปลี่ยน
+                    } else {
+                        showAdminNotification(result.message || 'ไม่สามารถส่งสัญญาณเรียกคิวซ้ำได้', 'error');
+                    }
+                })
+                .withFailureHandler(handleAdminScriptError)
+                .recallQueueForDisplay(currentCallingQueue.number, currentCallingQueue.counterId);
+        }
+
+        function recallQueueFromHistory(queueNumber, serviceId) {
+            // This function's behavior might need more definition.
+            // For now, it just shows a notification as per original, but could call a backend function.
+            showAdminNotification(`เรียกซ้ำคิว ${String(queueNumber).padStart(3, '0')} ไปที่ช่องบริการ ${serviceId}`, 'info');
+            // Potentially: google.script.run.recallQueue(queueNumber, serviceId);
+        }
+
+        function adminResetQueue() {
+            const resetNumberInput = document.getElementById('resetNumber');
+            const startNumber = parseInt(resetNumberInput.value);
+
+            if (isNaN(startNumber) || startNumber < 1) {
+                showAdminNotification('กรุณาระบุเลขเริ่มต้นที่ถูกต้อง', 'warning');
+                resetNumberInput.focus();
+                return;
+            }
+
+            const confirmationMessage = `คุณต้องการรีเซ็ตเลขคิวทั้งหมดและเริ่มนับใหม่จาก ${startNumber} ใช่หรือไม่? ข้อมูลคิวปัจจุบันทั้งหมดจะถูกลบ`;
+
+            showAdminConfirmationDialog(confirmationMessage, () => {
+                // User confirmed
+                google.script.run
+                    .withSuccessHandler(message => {
+                        showAdminNotification(message, 'success');
+                        currentCallingQueue = null; // Reset local state
+                        loadCurrentStatusAndHistory(); // Refresh display
+                        resetNumberInput.value = "1"; // Reset input field
+                    })
+                    .withFailureHandler(handleAdminScriptError)
+                    .resetQueueSystem(startNumber); // Backend function
+            });
+        }
+
+        // --- Notifications and Error Handling ---
+
+        function showAdminConfirmationDialog(message, onConfirm, onCancel) {
+            // Remove existing dialog if any
+            const existingDialog = document.getElementById('adminConfirmationOverlay');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'adminConfirmationOverlay';
+            overlay.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'bg-white p-6 rounded-lg shadow-xl max-w-md w-full';
+            
+            const messageP = document.createElement('p');
+            messageP.className = 'text-gray-800 text-base mb-6';
+            messageP.textContent = message;
+
+            const buttonDiv = document.createElement('div');
+            buttonDiv.className = 'flex justify-end gap-3';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors';
+            confirmBtn.textContent = 'ยืนยัน';
+            confirmBtn.onclick = () => { onConfirm(); overlay.remove(); };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg text-sm font-medium transition-colors';
+            cancelBtn.textContent = 'ยกเลิก';
+            cancelBtn.onclick = () => { if (onCancel) onCancel(); overlay.remove(); };
+
+            buttonDiv.appendChild(cancelBtn);
+            buttonDiv.appendChild(confirmBtn);
+            dialog.appendChild(messageP);
+            dialog.appendChild(buttonDiv);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+        }
+
+        function showAdminNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            let bgColor = 'bg-blue-500';
+            if (type === 'success') bgColor = 'bg-green-500';
+            if (type === 'error') bgColor = 'bg-red-500';
+            if (type === 'warning') bgColor = 'bg-yellow-500';
+
+            notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => { notification.classList.remove('translate-x-full'); }, 100);
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => { document.body.removeChild(notification); }, 300);
+            }, 3000);
+        }
+
+        function handleAdminScriptError(error) {
+            console.error('Admin Script Failure Handler:', error);
+            showAdminNotification(`เกิดข้อผิดพลาดในการสื่อสารกับเซิร์ฟเวอร์: ${error.message || error}`, 'error');
+            // Reset UI elements to a safe state
+            displayCurrentStatus(null, null);
+            displayQueueHistory([], []);
+            currentCallingQueue = null;
+            toggleActionButtons(false);
+        }
+
+        function showAdminError(error) { // Can be used for more general client-side errors or specific server messages
+            console.error('Admin Script Error:', error);
+            showAdminNotification(`ข้อผิดพลาด: ${error.message || error}`, 'error');
+        }
+
+        // Initialize display when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeAdminPage);
+
+        // ฟังก์ชันเพื่อเล่นเสียงตาม URL ที่กำหนด
+        function playAudio() {
+          let url = "https://weerasak3s.github.io/media/1-1.mp3";
+            return new Promise((resolve, reject) => {
+                if (!url) {
+                    reject(new Error("URL เสียงไม่ถูกต้อง"));  // ถ้า URL เสียงไม่ถูกต้อง ให้ปฏิเสธ Promise
+                    return;
+                }
+                const audio = new Audio(url);  // สร้างวัตถุ Audio ใหม่
+                audio.onended = resolve;  // เมื่อเสียงจบ ให้เรียก resolve
+                audio.onerror = (e) => reject(new Error(`ไม่สามารถเล่นเสียงได้: ${e.message}`));  // ถ้ามีข้อผิดพลาดให้ปฏิเสธ Promise
+                audio.play().catch(reject);  // เล่นเสียงและจับข้อผิดพลาด
+            });
+        }
+
+
+    </script>
+
+<!--
+Backend Google Apps Script (Code.gs) would need functions like:
+
+function getAdminDashboardData() {
+  // ... logic to get calling queue, next waiting, last 3 completed, last 3 skipped from Sheet "Queue"
+  // return { calling: callingQueueObj, nextWaiting: nextWaitingObj, completed: [completedObjs], skipped: [skippedObjs] };
+}
+
+function getActiveCounters() {
+  // ... logic to get active counters from Sheet "Counters"
+  // return [{id: "1", name: "ช่องบริการ 1", status: "active"}, ...];
+}
+
+function callNextQueueForService(counterId) {
+  // ... find next "waiting" queue, update its status to "calling", assign counterId, timestamp
+  // return { success: true, calledQueue: queueObj } or { success: false, message: "..." };
+}
+
+function markQueueAsCompleted(queueNumber) {
+  // ... update queue status to "completed"
+  // return { success: true } or { success: false, message: "..." };
+}
+
+function markQueueAsSkipped(queueNumber, reason) {
+  // ... update queue status to "skipped", store reason
+  // return { success: true } or { success: false, message: "..." };
+}
+
+function resetQueueSystem(startNumber) {
+  // ... update Sheet "Settings" B2 with startNumber
+  // ... clear Sheet "Queue"
+  // return "รีเซ็ตระบบคิวเรียบร้อย";
+}
+
+-->
