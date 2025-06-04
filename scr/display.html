@@ -133,51 +133,84 @@
                         <div class="text-8xl font-black" id="currentQueue">0</div>
                         <div class="text-right">
                             <div class="text-3xl font-bold mb-2" id="currentService">ช่องบริการ 1</div>
-                           <div class="flex items-center justify-center mb-8">
-                              <div class="bg-purple-100 p-4 rounded-full">
+                           <div id="callingIndicator" class="flex items-center justify-center mb-8 hidden">
+                                <span class="text-2xl font-semibold text-purple-300">กำลังเรียกคิว</span>
+                                <div class="ml-3 bg-purple-100 p-4 rounded-full"> <!-- Added ml-3 for spacing -->
                                   <svg class="w-8 h-8 text-purple-700 pulse-animation" fill="currentColor" viewBox="0 0 20 20">
                                       <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
                                   </svg>
                               </div>
-                              <span class="ml-4 text-2xl font-semibold text-purple-300">กำลังเรียกคิวหมายเลข</span>
-                          </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Previous Queues Section -->
-                <div class="mb-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-xl font-semibold text-gray-700">คิวที่เรียกไปแล้ว</span>
+                <!-- Queue History and Waiting Queues Section -->
+                <div class="flex flex-wrap -mx-4 mb-6"> <!-- Use flexbox for columns, negative margin to offset padding -->
+                    <!-- Left Column: Waiting Queues -->
+                    <div class="w-full md:w-1/2 px-4 mb-6 md:mb-0"> <!-- Add padding and bottom margin for mobile -->
+                        <div class="flex items-center gap-3 mb-4">
+                            <svg class="w-6 h-6 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-xl font-semibold text-gray-700">รายการคิวรอเรียก</span>
+                        </div>
+                        <!-- Waiting Queue List -->
+                        <div class="space-y-4" id="waitingQueueList">
+                            <!-- Waiting queue items will be populated here -->
+                        </div>
                     </div>
 
-                    <!-- Queue History -->
-                    <div class="space-y-4" id="queueHistory">
-                        <!-- Previous queue items will be populated here -->
+                    <!-- Right Column: Completed Queues -->
+                    <div class="w-full md:w-1/2 px-4"> <!-- Add padding -->
+                         <div class="flex items-center gap-3 mb-4">
+                            <svg class="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-xl font-semibold text-gray-700">คิวที่เรียก (ล่าสุด 3)</span>
+                        </div>
+                        <!-- Completed Queue History -->
+                        <div class="space-y-4" id="completedQueueHistory">
+                            <!-- Completed queue items will be populated here -->
+                        </div>
                     </div>
                 </div>
 
                  <!-- Skipped Queues Section -->
-                <div class="mb-6 hidden" id="skippedQueuesSection"> <!-- Initially hidden -->
+                <div class="mb-6 hidden" id="skippedQueuesSection"> <!-- This section remains full width -->
                     <div class="flex items-center gap-3 mb-4">
                         <svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                         </svg>
                         <span class="text-xl font-semibold text-gray-700">รายการคิวที่ข้าม โปรดติดต่อเจ้าหน้าที่</span>
                     </div>
+                    <!-- Skipped Queue List Display -->
                     <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 rounded-md shadow" role="alert">
                         <p class="font-bold text-lg" id="skippedQueueList">-</p>
                     </div>
                 </div>
-                
             </div>
 
             <!-- Footer removed as time display is now in the header -->
         </div>
     </div>
      <?!= include('js/display'); ?>
+     <script>
+        // Ensure the global variables are declared before the included script runs
+        let currentQueueEl;
+        let currentServiceEl;
+        let completedQueueHistoryEl; // Renamed from queueHistoryEl
+        let waitingQueueListEl; // Added
+        let skippedQueueListEl;
+        let skippedQueuesSectionEl;
+        let currentTimeEl;
+        let organizationNameDisplayEl;
+        let youtubePlayerEl;
+        let slideshowImageEl;
+        let mediaPlaceholderEl;
+        let callingIndicatorEl;
+        let interactionOverlay;
+        let startDisplayButton;
+     </script>
 </body>
 </html>

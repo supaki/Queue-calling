@@ -20,7 +20,8 @@
     function initDOMElements() {
         console.log("Initializing DOM elements");
         currentQueueEl = document.getElementById('currentQueue');
-        currentServiceEl = document.getElementById('currentService');
+        currentServiceEl = document.getElementById('currentService'); // This is for the *current* calling queue
+        completedQueueHistoryEl = document.getElementById('completedQueueHistory'); // Renamed
         queueHistoryEl = document.getElementById('queueHistory');
         skippedQueueListEl = document.getElementById('skippedQueueList');
         skippedQueuesSectionEl = document.getElementById('skippedQueuesSection');
@@ -29,6 +30,8 @@
         youtubePlayerEl = document.getElementById('youtubePlayer');
         slideshowImageEl = document.getElementById('slideshowImage');
         mediaPlaceholderEl = document.getElementById('mediaPlaceholder');
+        waitingQueueListEl = document.getElementById('waitingQueueList'); // Added
+        callingIndicatorEl = document.getElementById('callingIndicator'); // Added
         interactionOverlay = document.getElementById('interactionOverlay');
         startDisplayButton = document.getElementById('startDisplayButton');
     }
@@ -137,8 +140,8 @@
         }
 
         // Store previous calling queue to detect changes
-        const previousCallingQueue = currentQueueData && currentQueueData.calling ? currentQueueData.calling.number : null;
-        
+        const previousCallingQueueNumber = currentQueueData && currentQueueData.calling ? currentQueueData.calling.number : null;
+
         currentQueueData = data; 
 
         // Update display settings
@@ -175,20 +178,26 @@
             organizationNameDisplayEl.textContent = data.organizationName;
         }
 
+        const currentQueueCardEl = document.getElementById('currentQueueCard');
+
         if (data.calling) {
             // Format queue number as 3-digit with leading zeros
             if (currentQueueEl) {
                 const queueNumber = data.calling.number || '-';
-                if (queueNumber !== '-') {
-                    currentQueueEl.textContent = String(queueNumber).padStart(3, '0');
-                } else {
-                    currentQueueEl.textContent = queueNumber;
-                }
+                currentQueueEl.textContent = (queueNumber !== '-') ? String(queueNumber).padStart(3, '0') : queueNumber;
             }
             if (currentServiceEl) currentServiceEl.textContent = data.calling.serviceName || 'รอช่องบริการ';
-            if(document.getElementById('currentQueueCard')) {
-                document.getElementById('currentQueueCard').classList.remove('hidden');
-                document.getElementById('currentQueueCard').classList.add('slide-in'); // Re-trigger animation
+            
+            // currentQueueCardEl should always be visible.
+            // Re-trigger slide-in animation if the calling queue number has changed.
+            if (currentQueueCardEl && previousCallingQueueNumber !== data.calling.number) {
+                currentQueueCardEl.classList.remove('slide-in');
+                void currentQueueCardEl.offsetWidth; // Trigger reflow to restart animation
+                currentQueueCardEl.classList.add('slide-in');
+            }
+
+            if (callingIndicatorEl) {
+                callingIndicatorEl.classList.remove('hidden'); // Show "กำลังเรียกคิว" and bell
             }
             
             // Check for recall signal
@@ -205,68 +214,75 @@
                 }).clearRecallSignal();
             }
             // Also play sound when a new queue is called (not just on recall)
-            else if (previousCallingQueue !== data.calling.number) {
+            else if (previousCallingQueueNumber !== data.calling.number) {
                 console.log("New queue detected, playing announcement");
                 // Force audio context initialization before playing sound
                 initAudioContext();
                 playQueueSound(data.calling.number, data.calling.counterId, data.calling.counterNameSoundId, data.announcementPattern, data.counterAnnouncementType);
             }
-        } else {
+        } else { // No queue is calling
             if (currentQueueEl) currentQueueEl.textContent = '-';
             if (currentServiceEl) currentServiceEl.textContent = 'ไม่มีคิวเรียก';
-            if(document.getElementById('currentQueueCard')) document.getElementById('currentQueueCard').classList.add('hidden');
+            
+            // currentQueueCardEl remains visible.
+
+            if (callingIndicatorEl) {
+                callingIndicatorEl.classList.add('hidden'); // Hide "กำลังเรียกคิว" and bell
+            }
         }
 
-        if (queueHistoryEl) {
-            queueHistoryEl.innerHTML = ''; 
+        // Update Completed Queue History (Right Column)
+        if (completedQueueHistoryEl) {
+            completedQueueHistoryEl.innerHTML = '';
             if (data.completed && data.completed.length > 0) {
                 data.completed.forEach(function(q) {
                     const item = document.createElement('div');
                     item.className = 'bg-green-100 p-4 rounded-lg shadow flex justify-between items-center';
                     // Format queue number as 3-digit with leading zeros
                     const formattedQueueNumber = String(q.number).padStart(3, '0');
-                    // Modified to show queue number, service counter, and time in a single row
-                    // Ensure we display the time part of the timestamp (not just the date)
                     let timeDisplay = '-';
                     if (q.timestamp) {
                         const timestampDate = new Date(q.timestamp);
                         if (isNaN(timestampDate.getTime())) {
-                            console.warn("Invalid timestamp for queue:", q.number, q.timestamp);
+                            console.warn("Invalid timestamp for completed queue:", q.number, q.timestamp);
                         } else {
                             timeDisplay = timestampDate.toLocaleTimeString('th-TH', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: false
+                                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                             });
                         }
                     }
                     item.innerHTML = '<div class="flex items-center gap-3"><span class="text-2xl font-bold text-green-700">' + formattedQueueNumber + '</span><span class="text-sm text-gray-600">' + (q.serviceName || 'N/A') + '</span></div><span class="text-sm text-gray-500">' + timeDisplay + '</span>';
-                    queueHistoryEl.appendChild(item);
+                    completedQueueHistoryEl.appendChild(item);
                 });
             } else {
-                queueHistoryEl.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีคิวที่สำเร็จ</p>';
+                completedQueueHistoryEl.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีคิวที่สำเร็จ</p>';
+            }
+        }
+
+        // Update Waiting Queue List (Left Column)
+        if (waitingQueueListEl) {
+            waitingQueueListEl.innerHTML = '';
+            if (data.nextWaitingQueues && data.nextWaitingQueues.length > 0) {
+                 data.nextWaitingQueues.forEach(function(q) {
+                    const item = document.createElement('div');
+                    // Apply light purple styling
+                    item.className = 'bg-purple-100 p-4 rounded-lg shadow flex justify-between items-center';
+                    // Format queue number as 3-digit with leading zeros
+                    const formattedQueueNumber = String(q.number).padStart(3, '0');
+                    // Only display the formatted queue number
+                    item.innerHTML = '<div class="flex items-center gap-3"><span class="text-2xl font-bold text-purple-700">' + formattedQueueNumber + '</span></div>';
+                    waitingQueueListEl.appendChild(item);
+                });
+            } else {
+                waitingQueueListEl.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีคิวรอเรียก</p>';
             }
         }
 
         if (skippedQueueListEl && skippedQueuesSectionEl) {
             if (data.skipped && data.skipped.length > 0) {
-                // Only show queue numbers as 3-digit with leading zeros, separated by commas, with timestamp at the end
+                // Only show queue numbers as 3-digit with leading zeros, separated by commas
                 const queueNumbers = data.skipped.map(q => String(q.number).padStart(3, '0')).join(', ');
-                // Get the latest timestamp from skipped queues with proper formatting
-                let latestTimestamp = '';
-                if (data.skipped.length > 0 && data.skipped[0].timestamp) {
-                    const timestampDate = new Date(data.skipped[0].timestamp);
-                    if (!isNaN(timestampDate.getTime())) {
-                        latestTimestamp = ' ' + timestampDate.toLocaleTimeString('th-TH', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                        });
-                    }
-                }
-                skippedQueueListEl.textContent = queueNumbers + latestTimestamp;
+                skippedQueueListEl.textContent = queueNumbers;
                 skippedQueuesSectionEl.classList.remove('hidden');
             } else {
                 skippedQueuesSectionEl.classList.add('hidden');
@@ -805,6 +821,8 @@
     let youtubePlayerEl;
     let slideshowImageEl;
     let mediaPlaceholderEl;
+    let waitingQueueListEl; // Added
+    let callingIndicatorEl; // Added
     let interactionOverlay;
     let startDisplayButton;
 </script>

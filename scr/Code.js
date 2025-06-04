@@ -506,6 +506,17 @@ function getAdminDashboardData() {
       nextWaitingQueue = waitingQueuesList[0];
     }
 
+    // Get the next 3 waiting queues for the display page
+    const nextWaitingQueuesRaw = waitingQueuesList.slice(0, 3); // Take the first 3 after sorting
+    const nextWaitingQueues = nextWaitingQueuesRaw.map(q => ({
+        number: q.number,
+        serviceId: q.counterId, // Counter ID might be null for waiting
+        serviceName: q.serviceName, // Service Name might be null for waiting
+        // Use createdAt timestamp for waiting queues
+        timestamp: isValidDate(q.createdAtDateObj) ? q.createdAtDateObj.toISOString() : null
+    }));
+
+
     const completedQueuesRaw = allQueues.filter(q => q.status === 'completed');
     completedQueuesRaw.sort((a, b) => {
       if (isValidDate(a.calledAtDateObj) && isValidDate(b.calledAtDateObj)) return b.calledAtDateObj.getTime() - a.calledAtDateObj.getTime();
@@ -592,6 +603,7 @@ function getAdminDashboardData() {
     return {
       calling: finalCallingQueue,
       nextWaiting: finalNextWaitingQueue,
+      nextWaitingQueues: nextWaitingQueues, // Add the list of next waiting queues
       completed: completedQueues,
       allQueuesForTable: allQueuesForTableOutput, 
       skipped: skippedQueues,
@@ -613,6 +625,7 @@ function getAdminDashboardData() {
     return { 
         calling: null, 
         nextWaiting: null, 
+        nextWaitingQueues: [], // Send empty array on critical error
         completed: [], 
         skipped: [], 
         error: "Server-side exception in getAdminDashboardData: " + e.message,
